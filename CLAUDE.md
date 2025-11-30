@@ -178,3 +178,70 @@
 - NEVER automatically create commits
 - User will make their own commits when they consider it necessary
 - Do not suggest or offer to commit changes
+## React Component Guidelines
+
+### Single Responsibility Principle
+- Each component should have one clear purpose and do it well
+- If a component has multiple concerns, split it into smaller components
+- Component names should clearly indicate their single responsibility
+- Keep components under 200 lines of code
+
+### Component Organization
+- Container Components (Smart): Handle logic, state, and data fetching
+- Presentation Components (Dumb): Focus only on UI rendering
+- Layout Components: Manage page structure and composition
+- Feature Components: Group related functionality in feature folders
+
+### Always Use Custom Hooks When
+- Logic is reused across multiple components
+- State management is complex or shared
+- Side effects need to be isolated and tested
+- API calls or data fetching is needed
+- Browser APIs are accessed (localStorage, geolocation, etc.)
+
+### Hook Best Practices
+- Use lazy initialization for expensive computations in useState
+- Keep useEffect focused on one concern
+- Always return cleanup functions when needed
+- List all dependencies correctly
+- Only use useMemo/useCallback when performance issues are measured
+
+### Component Composition
+- Always define clear TypeScript interfaces for props
+- Avoid prop drilling - use Context or state management (Zustand)
+- Pass data down via props, events up via callbacks
+- Use Zustand for complex shared state
+
+### TypeScript Standards
+- Always type props, state, and return values
+- Use interfaces for object shapes
+- Avoid any type - use unknown if needed
+- Leverage type inference when obvious
+
+### File Naming & Structure
+- Components: PascalCase (UserProfile.tsx)
+- Hooks: camelCase with "use" prefix (useAuth.ts)
+- Utils/Helpers: camelCase (formatDate.ts)
+- Constants: UPPER_SNAKE_CASE (API_BASE_URL)
+- One component per file
+- Use barrel exports (index.ts) for feature folders
+
+### Performance Optimization
+- Measure first with React DevTools Profiler
+- Memoize expensive calculations with useMemo
+- Use React.memo for components that re-render frequently
+- Lazy load heavy components with React.lazy
+- Debounce expensive operations
+
+### State Management
+- Local State (useState/useReducer): Component-specific state, form inputs, UI toggles
+- Global State (Zustand): User auth, app settings, shared data across routes
+- Server State (React Query/SWR): API data, cache management
+
+### Accessibility
+- Use semantic HTML elements
+- Include ARIA labels when needed
+- Support keyboard navigation
+- Manage focus properly
+- Ensure screen reader compatibility
+
