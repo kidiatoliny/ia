@@ -133,6 +133,11 @@
 - When writing Pest tests, always use expectation chains with `->and()` instead of multiple expect() calls
   - Bad: `expect($a)->toBeTrue(); expect($b)->toBeTrue();`
   - Good: `expect($a)->toBeTrue()->and($b)->toBeTrue();`
+- **Never use mocks** - use real implementations or Laravel's container to resolve dependencies
+  - Bad: `$mock = Mockery::mock(Service::class)`
+  - Good: `app(Service::class)` or inject via constructor
+- **Use Laravel Container** for dependency resolution instead of manually instantiating classes
+  - Example: `$service = app(MyService::class);` or use dependency injection in test methods
 - Every test method should be structured with Arrange-Act-Assert
   - **Arrange phase**: use Laravel factories but add meaningful column values and variable names if they help to understand failed tests better
     - Bad example: `$user1 = User::factory()->create();`
@@ -244,4 +249,35 @@
 - Support keyboard navigation
 - Manage focus properly
 - Ensure screen reader compatibility
+
+## Documentation Structure
+
+### Markdown Files Naming & Organization
+- **Numeric Prefixes**: All documentation files must use numeric prefixes (00-, 01-, 02-, etc.)
+  - Example: `00-index.md`, `01-usage.md`, `02-installation.md`
+  - This provides natural ordering and makes navigation clear
+
+- **Navigation Between Pages**: Every documentation page (except the index) must include navigation footer
+  - Format at the end of each file:
+    ```
+    ---
+
+    **← Previous:** [XX - Page Title](./XX-filename.md) | **Next:** [YY - Next Page →](./YY-next.md)
+    ```
+  - The index page should have:
+    ```
+    ---
+
+    **Next:** [01 - Next Page →](./01-filename.md)
+    ```
+
+- **Documentation Index**: The main index (00-index.md) should contain a numbered list of all documentation pages
+  - Link format: `[NN - Page Title](./NN-filename.md) - Brief description`
+
+- **File Naming**: Use descriptive kebab-case names after the prefix
+  - Good: `02-pdf-generators.md`, `03-builders.md`
+  - Bad: `02-pdf.md`, `03-b.md`
+
+- **Cross-References**: When linking to documentation files in README or other places, always use the full filename with numeric prefix
+  - Example: `[PDF Generators Guide](docs/02-pdf-generators.md)`
 
