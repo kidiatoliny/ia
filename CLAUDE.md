@@ -128,6 +128,15 @@
 - Inertia page names must be lowercase (e.g., `Inertia::render('dashboard', $data)`)
 - Page component files match route names and are auto-loaded by Vite
 
+## Inertia Best Practices
+- **Form Validation**: All form validation must be done using Zod schemas on the frontend
+- **Forms**: Always use `useForm` hook from Inertia or the Form Component from Inertia
+- **LocalStorage**: Use Zustand for local storage needs instead of raw localStorage API
+- **Routing**: Always use Wayfinder for route generation and navigation
+- **TypeScript**: Everything must be fully typed with TypeScript - no `any` types
+- **Code Comments**: Do not comment code unless absolutely necessary for complex logic explanation
+- **Custom Hooks**: Extract reusable logic into custom hooks whenever it promotes code reuse
+
 ## Testing
 - Use Pest and not PHPUnit. Run tests with `php artisan test`
 - When writing Pest tests, always use expectation chains with `->and()` instead of multiple expect() calls
