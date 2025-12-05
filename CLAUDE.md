@@ -137,6 +137,7 @@
 - **Code Comments**: Do not comment code unless absolutely necessary for complex logic explanation
 - **Custom Hooks**: Extract reusable logic into custom hooks whenever it promotes code reuse
 - **UI Components**: Use shadcn/ui components or components from https://coss.com/origin for UI elements
+- **Named Exports**: Never use `export default` for components - always use named exports like `export function ComponentName()`
 
 ## Testing
 - Use Pest and not PHPUnit. Run tests with `php artisan test`
