@@ -195,11 +195,21 @@
 - When writing Pest tests, always use expectation chains with `->and()` instead of multiple expect() calls
   - Bad: `expect($a)->toBeTrue(); expect($b)->toBeTrue();`
   - Good: `expect($a)->toBeTrue()->and($b)->toBeTrue();`
-- **Never use mocks** - use real implementations or Laravel's container to resolve dependencies
-  - Bad: `$mock = Mockery::mock(Service::class)`
-  - Good: `app(Service::class)` or inject via constructor
-- **Use Laravel Container** for dependency resolution instead of manually instantiating classes
-  - Example: `$service = app(MyService::class);` or use dependency injection in test methods
+- **Use Pest framework exclusively**
+- **Use chaining expect() for all assertions**
+- **Use the real Laravel container** - no container mocking
+- **Use real database interactions** - leverage Laravel's testing database features
+- **Use fake implementations via contracts** when external services are involved
+- **Strictly Prohibited:**
+  - ❌ NO mocks - do not use Mockery or any mocking framework
+  - ❌ NO spies - do not spy on method calls
+  - ❌ NO large end-to-end job tests - keep tests small and focused
+- **Preferred Testing Style:**
+  - ✅ Write many small tests
+  - ✅ Ensure clear intent per test
+  - ✅ Keep minimal setup
+  - ✅ One assertion concept per test
+  - ✅ Use descriptive test names
 - Every test method should be structured with Arrange-Act-Assert
   - **Arrange phase**: use Laravel factories but add meaningful column values and variable names if they help to understand failed tests better
     - Bad example: `$user1 = User::factory()->create();`
