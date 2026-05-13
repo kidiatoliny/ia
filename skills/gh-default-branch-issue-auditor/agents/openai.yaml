@@ -1,0 +1,4 @@
+interface:
+  display_name: "Default Branch Issue Auditor"
+  short_description: "Audit default branch and open prioritized issues"
+  default_prompt: "Analyze the repository default branch, identify high-impact issues, prioritize them, and open detailed GitHub issues with clear implementation guidance."

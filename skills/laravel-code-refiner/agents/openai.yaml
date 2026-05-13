@@ -1,0 +1,4 @@
+interface:
+  display_name: "Laravel Code Refiner"
+  short_description: "Refine Laravel code without behavior changes"
+  default_prompt: "Use $laravel-code-refiner to simplify the latest Laravel/PHP changes while preserving exact behavior."

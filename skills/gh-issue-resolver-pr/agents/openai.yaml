@@ -1,0 +1,4 @@
+interface:
+  display_name: "GH Issue Resolver PR"
+  short_description: "Triar issues por urgência, corrigir e abrir PRs com validação."
+  default_prompt: "Analyze open GitHub issues for this repo, prioritize by urgency, fix them one by one, run relevant tests, and open PRs with clear summaries."

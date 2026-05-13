@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Runtime / transient
+.caveman-active
+history.jsonl
+mcp-needs-auth-cache.json
+stats-cache.json
+
+# Per-session / per-project state (private)
+projects/
+sessions/
+todos/
+tasks/
+plans/
+file-history/
+shell-snapshots/
+paste-cache/
+ide/
+debug/
+downloads/
+backups/
+cache/
+telemetry/
+statsig/
+stats/
+
+# Local-only settings
+settings.local.json
+
+# Plugins (managed by Claude Code, not source-tracked)
+plugins/
