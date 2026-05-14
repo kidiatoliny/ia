@@ -1,0 +1,48 @@
+  build-linux-x86_64:
+    name: Build (linux x86_64)
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - uses: pnpm/action-setup@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: x86_64-unknown-linux-gnu }
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm run tauri build --target x86_64-unknown-linux-gnu
+
+      - name: Normalize artifacts
+        id: meta
+        env:
+          APP_KEY: ${{ env.APP_KEY }}
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          mkdir -p dist
+          BUNDLE_DIR="src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+          APPIMAGE=$(find "$BUNDLE_DIR/appimage" -name '*.AppImage' | head -1)
+
+          KEY_SAFE="${APP_KEY//-/_}"
+          APPIMAGE_OUT="${KEY_SAFE}_${VERSION}_x86_64.AppImage"
+
+          cp "$APPIMAGE"       "dist/${APPIMAGE_OUT}"
+          cp "${APPIMAGE}.sig" "dist/${APPIMAGE_OUT}.sig" 2>/dev/null || true
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux-x86_64
+          path: dist/*

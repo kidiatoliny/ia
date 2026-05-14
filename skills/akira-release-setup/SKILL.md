@@ -76,23 +76,56 @@ to confirm before writing files.
 | `S3_ENDPOINT`   | `https://nyc3.digitaloceanspaces.com` unless told otherwise.                         |
 | `CDN_BASE`      | `https://{S3_BUCKET}.nyc3.cdn.digitaloceanspaces.com` (no trailing `/releases`).     |
 
+### 2b. Pick OS targets
+
+Ask the user which OS / arch combinations to build for. Multi-select.
+Mention upfront that macOS runners on GitHub Actions cost 10x normal
+minutes so unselect the ones you do not need.
+
+```
+Which targets? (space to toggle, enter to confirm)
+  [x] macos-aarch64      Apple Silicon (recommended)
+  [x] macos-x86_64       Intel Macs
+  [ ] linux-x86_64       AppImage (Tauri) / tar.gz (Wails)
+  [ ] windows-x86_64     MSI+NSIS (Tauri) / EXE+installer (Wails)
+```
+
+Default: both macOS targets only. Remember the chosen list — it drives
+which build jobs end up in the rendered workflow and which `*_BUNDLE`
+env vars the publish job exports.
+
 ### 3. Copy + render the workflow
 
 Source files inside this skill:
 
-- `templates/tauri-build-and-release.yml`
-- `templates/wails-build-and-release.yml`
+- `templates/tauri-build-and-release.yml`     (base: header + macOS build jobs + publish)
+- `templates/wails-build-and-release.yml`     (base: header + macOS build jobs + publish)
 - `templates/publish-release.sh`
+- `templates/snippets/tauri-linux-x86_64.yml`
+- `templates/snippets/tauri-windows-x86_64.yml`
+- `templates/snippets/wails-linux-amd64.yml`
+- `templates/snippets/wails-windows-amd64.yml`
 
 For the chosen bundler:
 
-1. Read the matching template file.
+1. Read the matching base template file.
 2. Replace the `env:` block values with the user-confirmed parameters.
-3. Write the rendered YAML to `.github/workflows/build-and-release.yml`
+3. If the user unselected `macos-aarch64` or `macos-x86_64`, remove the
+   corresponding `build-aarch64:` / `build-x86_64:` job block.
+4. For each non-mac target the user selected, append the matching
+   `templates/snippets/{bundler}-{target}.yml` to the `jobs:` section
+   above the `publish:` job.
+5. Update the `publish:` job:
+   - `needs: [build-aarch64, build-x86_64, build-linux-x86_64, build-windows-x86_64]`
+     — keep only the jobs that were retained.
+   - Drop any `*_BUNDLE` / `*_DMG` env line whose underlying build job
+     was removed. Add `LINUX_APPIMAGE` / `WINDOWS_MSI` / `WINDOWS_NSIS`
+     lines for the new targets, pointing at `dist/{artifact name}`.
+     `publish-release.sh` already understands those env vars.
+6. Write the rendered YAML to `.github/workflows/build-and-release.yml`
    in the target repo.
-4. Copy `templates/publish-release.sh` verbatim to
-   `.github/scripts/publish-release.sh` in the target repo and make
-   sure it is executable (`chmod +x`).
+7. Copy `templates/publish-release.sh` verbatim to
+   `.github/scripts/publish-release.sh` and `chmod +x` it.
 
 If either destination already exists, show a diff and ask before
 overwriting.

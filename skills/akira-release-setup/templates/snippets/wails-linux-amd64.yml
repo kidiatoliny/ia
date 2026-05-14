@@ -1,0 +1,64 @@
+  build-linux-amd64:
+    name: Build (linux amd64)
+    runs-on: ubuntu-latest
+    outputs:
+      bin_name: ${{ steps.meta.outputs.bin_name }}
+      bin_path: ${{ steps.meta.outputs.bin_path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache: true }
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev minisign
+
+      - run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - run: bun install --frozen-lockfile
+      - working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - id: ver
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build app
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          wails build -platform linux/amd64 -clean \
+            -ldflags "-X spectra-desktop/internal/version.Version=${VERSION}"
+          ls -la build/bin/
+
+      - name: Package + sign artifacts
+        id: meta
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          MINISIGN_PRIVATE_KEY: ${{ secrets.MINISIGN_PRIVATE_KEY }}
+          MINISIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.MINISIGN_PRIVATE_KEY_PASSWORD }}
+        run: |
+          OUT=$RUNNER_TEMP/dist
+          mkdir -p "$OUT"
+          BIN=$(find build/bin -maxdepth 1 -type f -perm -u+x | head -1)
+
+          BIN_OUT="${PRODUCT_NAME}_${VERSION}_linux_amd64"
+          cp "$BIN" "${OUT}/${BIN_OUT}"
+          tar -czf "${OUT}/${BIN_OUT}.tar.gz" -C "$OUT" "$BIN_OUT"
+
+          echo "$MINISIGN_PRIVATE_KEY" > "$RUNNER_TEMP/minisign.key"
+          echo "$MINISIGN_PRIVATE_KEY_PASSWORD" | minisign -Sm "${OUT}/${BIN_OUT}.tar.gz" -s "$RUNNER_TEMP/minisign.key"
+          rm "$RUNNER_TEMP/minisign.key"
+          mv "${OUT}/${BIN_OUT}.tar.gz.minisig" "${OUT}/${BIN_OUT}.tar.gz.sig"
+
+          echo "bin_name=${BIN_OUT}.tar.gz" >> $GITHUB_OUTPUT
+          echo "bin_path=${OUT}/${BIN_OUT}.tar.gz" >> $GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux-amd64
+          path: |
+            ${{ steps.meta.outputs.bin_path }}
+            ${{ steps.meta.outputs.bin_path }}.sig

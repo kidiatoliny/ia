@@ -1,0 +1,70 @@
+  build-windows-amd64:
+    name: Build (windows amd64)
+    runs-on: windows-latest
+    outputs:
+      bin_name: ${{ steps.meta.outputs.bin_name }}
+      bin_path: ${{ steps.meta.outputs.bin_path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.25', cache: true }
+      - uses: oven-sh/setup-bun@v2
+        with: { bun-version: latest }
+
+      - name: Install Wails CLI + tooling
+        shell: bash
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          choco install -y nsis minisign
+
+      - run: bun install --frozen-lockfile
+      - working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - id: ver
+        shell: bash
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build app
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        shell: bash
+        run: |
+          wails build -platform windows/amd64 -clean -nsis \
+            -ldflags "-X spectra-desktop/internal/version.Version=${VERSION}"
+          ls -la build/bin/
+
+      - name: Package + sign artifacts
+        id: meta
+        shell: bash
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          MINISIGN_PRIVATE_KEY: ${{ secrets.MINISIGN_PRIVATE_KEY }}
+          MINISIGN_PRIVATE_KEY_PASSWORD: ${{ secrets.MINISIGN_PRIVATE_KEY_PASSWORD }}
+        run: |
+          OUT=$RUNNER_TEMP/dist
+          mkdir -p "$OUT"
+          EXE=$(find build/bin -maxdepth 1 -name '*.exe' | head -1)
+          NSIS_INSTALLER=$(find build/bin -maxdepth 1 -name '*-installer.exe' | head -1)
+
+          EXE_OUT="${PRODUCT_NAME}_${VERSION}_windows_amd64.exe"
+          INSTALLER_OUT="${PRODUCT_NAME}_${VERSION}_windows_amd64-installer.exe"
+
+          cp "$EXE"            "${OUT}/${EXE_OUT}"
+          [ -n "$NSIS_INSTALLER" ] && cp "$NSIS_INSTALLER" "${OUT}/${INSTALLER_OUT}"
+
+          echo "$MINISIGN_PRIVATE_KEY" > "$RUNNER_TEMP/minisign.key"
+          echo "$MINISIGN_PRIVATE_KEY_PASSWORD" | minisign -Sm "${OUT}/${EXE_OUT}" -s "$RUNNER_TEMP/minisign.key"
+          rm "$RUNNER_TEMP/minisign.key"
+          mv "${OUT}/${EXE_OUT}.minisig" "${OUT}/${EXE_OUT}.sig"
+
+          echo "bin_name=${EXE_OUT}" >> $GITHUB_OUTPUT
+          echo "bin_path=${OUT}/${EXE_OUT}" >> $GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows-amd64
+          path: |
+            ${{ steps.meta.outputs.bin_path }}
+            ${{ steps.meta.outputs.bin_path }}.sig
+            ${{ env.RUNNER_TEMP }}/dist/*-installer.exe
