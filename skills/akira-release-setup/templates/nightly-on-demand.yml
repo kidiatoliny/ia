@@ -1,0 +1,89 @@
+name: Nightly (on demand)
+
+# Optional companion to build-and-release.yml. Does NOT run on a schedule
+# to keep CI minutes under control. Trigger manually from the GitHub UI
+# (Actions → Nightly (on demand) → Run workflow) when you need a fresh
+# nightly build of the current branch.
+#
+# How it works:
+#   1. Computes a synthetic tag v{BASE}-nightly.{YYYYMMDDHHMM} from the
+#      current branch + UTC timestamp.
+#   2. Pushes the tag.
+#   3. The push triggers build-and-release.yml the same way a regular
+#      release would. publish-release.sh sees the -nightly. suffix and
+#      uploads to nightly/v{...}/ + nightly/latest.json.
+#
+# Cost: one full macOS build job per click. No background scheduling.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_version:
+        description: 'Base SemVer (defaults to the value in package.json / wails.json / VERSION file)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve base version
+        id: base
+        run: |
+          INPUT="${{ inputs.base_version }}"
+          if [ -n "$INPUT" ]; then
+            BASE="$INPUT"
+          elif [ -f package.json ]; then
+            BASE=$(node -p "require('./package.json').version" 2>/dev/null || true)
+          fi
+          if [ -z "${BASE:-}" ] && [ -f wails.json ]; then
+            BASE=$(grep -E '"version"' wails.json | head -1 | cut -d'"' -f4 || true)
+          fi
+          if [ -z "${BASE:-}" ] && [ -f VERSION ]; then
+            BASE=$(cat VERSION | tr -d '[:space:]')
+          fi
+          if [ -z "${BASE:-}" ]; then
+            echo "::error::Could not resolve a base version. Pass it as an input or add it to package.json/wails.json/VERSION."
+            exit 1
+          fi
+          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute nightly tag
+        id: tag
+        run: |
+          STAMP=$(date -u +%Y%m%d%H%M)
+          TAG="v${{ steps.base.outputs.base }}-nightly.${STAMP}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Bail if nothing changed since last nightly
+        run: |
+          LAST=$(git tag --list 'v*-nightly.*' --sort=-creatordate | head -1)
+          if [ -n "$LAST" ]; then
+            COUNT=$(git rev-list --count "${LAST}..HEAD")
+            if [ "$COUNT" = "0" ]; then
+              echo "No commits since ${LAST}; skipping."
+              exit 0
+            fi
+          fi
+
+      - name: Push tag (triggers build-and-release.yml)
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git tag "${{ steps.tag.outputs.tag }}"
+          git push origin "${{ steps.tag.outputs.tag }}"
+
+      - name: Summary
+        run: |
+          echo "## Nightly tagged" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`${{ steps.tag.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Build: see the Build and Release workflow run that this tag triggered." >> "$GITHUB_STEP_SUMMARY"

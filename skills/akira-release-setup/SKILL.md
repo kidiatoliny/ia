@@ -97,6 +97,18 @@ For the chosen bundler:
 If either destination already exists, show a diff and ask before
 overwriting.
 
+### 3b. (Optional) Nightly on demand
+
+Ask the user "Add an on-demand nightly workflow? [y/N]". Default no —
+nightly builds burn macOS minutes and most projects do not need them on
+a schedule.
+
+If yes, copy `templates/nightly-on-demand.yml` verbatim to
+`.github/workflows/nightly-on-demand.yml`. It only triggers via
+`workflow_dispatch` (manual run from the GitHub UI), computes a
+`v{BASE}-nightly.{timestamp}` tag, and pushes it — which fires the main
+release workflow. No `schedule:` block, no background cost.
+
 ### 4. Verify required repo files
 
 - **Tauri:** `src-tauri/tauri.conf.json` should declare an `updater`
