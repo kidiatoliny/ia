@@ -1,4 +1,4 @@
-/* Spectra Instagram carousel — 1080x1350 (4:5) */
+/* Spectra Instagram carousel — 1080x1080 (1:1 square) */
 
 :root {
   --bg: #0b0a14;
@@ -21,7 +21,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 1080px; height: 1350px; overflow: hidden; }
+html, body { width: 1080px; height: 1080px; overflow: hidden; }
 body {
   font-family: var(--font-sans);
   background: var(--bg);
@@ -32,7 +32,7 @@ body {
 .slide {
   position: relative;
   width: 1080px;
-  height: 1350px;
+  height: 1080px;
   padding: 80px;
   background:
     radial-gradient(900px 600px at 80% 0%, rgba(167, 139, 250, 0.22), transparent 60%),

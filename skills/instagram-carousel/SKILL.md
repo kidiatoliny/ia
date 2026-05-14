@@ -1,31 +1,40 @@
 ---
 name: instagram-carousel
-description: Generate an 8-slide Instagram carousel (1080x1350) for the current project. Analyzes the codebase to detect project type, audience, and brand color, then writes HTML/CSS slides + a Chrome-headless render script. Use when the user asks for marketing slides, IG carousel, social post, "create a carousel", "promo slides", or similar.
+description: Generate an 8-slide Instagram carousel (1080x1080) for the current project. Analyzes the codebase to detect project type, audience, and brand color, then writes HTML/CSS slides + a Chrome-headless render script. Use when the user asks for marketing slides, IG carousel, social post, "create a carousel", "promo slides", or similar.
 ---
 
 # Instagram Carousel Generator
 
-Generates an 8-slide Instagram carousel under `marketing/instagram/` for the project in CWD.
+Generates an 8-slide Instagram carousel for the project in CWD. Output lives on the user's Desktop, OUTSIDE the project repo — never inside it.
 
 ## Output layout
 
+Resolve `~/Desktop/marketing.<slug>/` where `<slug>` is the project name (kebab/lowercase). Examples: `~/Desktop/marketing.spectra/`, `~/Desktop/marketing.orbit/`, `~/Desktop/marketing.unified-dev/`.
+
 ```
-marketing/instagram/
+~/Desktop/marketing.<slug>/
   styles.css
   slide-1.html ... slide-8.html
   render.sh
   out/slide-1.png ... slide-8.png   (after render)
 ```
 
-Also append `/marketing` to `.gitignore` if missing.
+Slug rules:
+- Lowercase, kebab-case.
+- Source from `package.json` `name`, `Cargo.toml` `name`, `pyproject.toml` `project.name`, etc. Fall back to README title or repo folder name.
+- Strip org prefixes (`@akira/spectra` → `spectra`).
+
+Caption is NOT a file. Printed in final chat response as copy-paste-ready block.
+
+`.gitignore`: not needed — output is outside repo. Do NOT touch project's `.gitignore`.
 
 ## Specs (non-negotiable)
 
-- Canvas: **1080x1350** (4:5, IG-optimal).
+- Canvas: **1080x1080** (1:1 square).
 - Language: **English** for all copy, comments, filenames.
 - Style: dark background, radial gradient, brand color accent, subtle grid backdrop, **Inter** + **JetBrains Mono** via Google Fonts.
 - No emojis anywhere.
-- Renderer: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --screenshot --window-size=1080,1350`.
+- Renderer: `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --screenshot --window-size=1080,1080`.
 - Copy is short, sentence fragments OK.
 
 ## Step 1 — Analyze the project
@@ -48,7 +57,7 @@ Infer:
 
 Default to making the reasonable call and continuing. Only stop to ask when:
 - Audience is genuinely unclear from the codebase.
-- Instagram handle is not present anywhere (try `package.json` author, README, social links first).
+- Instagram handle: do NOT invent or guess from project/org name (no `@akira_foundation`, no `@<project>` etc). Search only in: `package.json` author/social fields, README links, and any social config files. If not found there, ALWAYS default to **`@kidiatoliny_`** — never invent.
 - User explicitly invoked the skill with "ask me first".
 
 If the user has said "work without stopping", do not ask — pick defaults and continue.
@@ -64,7 +73,7 @@ Adapt the examples to the project's actual domain. Keep the structure.
 5. **Primary feature** — 3-column grid with monogram icons (`{ }`, `~`, `✓` style — not emojis).
 6. **Secondary feature** — domain-matched visual: terminal for CLI, screenshot/UI mock for app, diagram for infra, chart for data.
 7. **Stack / specs** — 4 stats. Pick what impresses the target audience: tech versions, bundle size, perf numbers, scale, pricing, integrations.
-8. **CTA** — `Follow @<handle> →` button + 3 platform/availability pills.
+8. **CTA** — `Follow @<handle>` button (handle resolution rules: see Step 2; default `@kidiatoliny_` — never guess from project name) + 3 platform/availability pills.
 
 ## Step 4 — Reusable CSS components
 
@@ -116,7 +125,7 @@ for i in 1 2 3 4 5 6 7 8; do
   "$CHROME" --headless=new --disable-gpu --hide-scrollbars \
     --default-background-color=00000000 \
     --screenshot="$OUT/slide-$i.png" \
-    --window-size=1080,1350 \
+    --window-size=1080,1080 \
     --virtual-time-budget=4000 \
     "file://$DIR/slide-$i.html" >/dev/null 2>&1
   echo "✓ slide-$i.png"
@@ -126,15 +135,51 @@ ls -1 "$OUT"
 
 `chmod +x render.sh` after writing.
 
-## Step 7 — Execute
+## Step 7 — Caption (printed in chat, NOT a file)
 
-1. Create `marketing/instagram/` and `marketing/instagram/out/`.
-2. Write `styles.css` (adapt brand color).
-3. Write `slide-1.html` … `slide-8.html`. Show each in a Write tool call so the preview panel updates.
-4. Write `render.sh`, `chmod +x`.
-5. Append `/marketing` to `.gitignore` if not present.
-6. Run `bash marketing/instagram/render.sh`.
-7. List the generated PNGs.
+At the end of the run, print a copy-paste-ready Instagram caption inside a fenced code block in the chat reply. Do NOT write it to disk.
+
+Goal: short, assertive, scroll-stopping. **Not** a recap of the slides — the slides already say what the product does. The caption adds reframing, contrast, or a punchline a reader can't get from the visuals alone.
+
+Format:
+
+```
+<line 1: punchy contrast or reframe. ~6–10 words. Names the incumbent or the wrong way, names the product. NOT a question, NOT a slide-1 echo.>
+
+<2–3 short sentences expanding the angle. Each sentence ≤ 14 words. New information, not slide bullets reworded.>
+
+<one-line value verb-chain or status update — e.g. "Run. Mock. Snapshot. Ship." or "Beta's open. No waitlist.">
+
+Follow @<handle>
+
+#tag1 #tag2 #tag3 #tag4 #tag5
+```
+
+Rules:
+- **Native English.** No literal translations, no awkward phrasing ("read on contact", "framework-aware as a service"). Read it out loud — if a fluent dev wouldn't say it, rewrite.
+- **No em-dash slashes** (` — `) anywhere in the caption. Use periods. Em-dashes look fine on slides; in IG caption they break the rhythm and look AI-generated.
+- **No filler.** No "really", "simply", "just", "the future of", "say goodbye to", "introducing".
+- **No slide-copy reuse.** If a sentence already appears on a slide, rewrite or cut it.
+- **No emojis.**
+- **Contractions OK** ("doesn't", "it's", "beta's") — they read native.
+- 5–8 hashtags max, domain-relevant (devtools, opensource, github, etc).
+- Handle matches slide 8 (default `@kidiatoliny_`, never guess).
+- Tone matches slide audience: technical for devtools, benefit-led for consumer, outcome-led for B2B.
+- Total length under ~60 words excluding hashtags. Aim for shorter.
+
+## Step 8 — Execute
+
+Let `DEST="$HOME/Desktop/marketing.<slug>"`.
+
+1. Create `$DEST/` and `$DEST/out/`.
+2. Write `$DEST/styles.css` (adapt brand color).
+3. Write `$DEST/slide-1.html` … `slide-8.html`. Show each in a Write tool call so the preview panel updates.
+4. Write `$DEST/render.sh`, `chmod +x`.
+5. Run `bash "$DEST/render.sh"`.
+6. List generated PNGs.
+7. Print caption (Step 7) in a fenced code block — never skip.
+
+Never write under the project's working tree. Never modify project's `.gitignore`.
 
 ## Rules
 
