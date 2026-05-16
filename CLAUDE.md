@@ -6,9 +6,18 @@
 - Use TodoWrite for multi-step tasks
 - Wait for user confirmation before making changes
 
-## Comments
-- Only add comments for complex logic requiring explanation
-- Use PHPDoc blocks for static analysis (@var, @property, @method)
+## Comments — STRICT (applies to ALL languages: PHP, TS/JS, Rust, Go, etc.)
+- DO NOT add narrative/explanatory comments. Code must be self-documenting.
+- DO NOT add docblocks summarizing what a class/function/file does — names already describe it.
+- DO NOT add "why we did this" historical commentary. Use git log/commit messages.
+- DO NOT label deprecated/temporary code with verbose paragraphs. One short `// TODO:` line max.
+- DO NOT explain obvious code (e.g. `// loop over items`, `// returns the user`, `// Initialize state`).
+- DO NOT add section header comments like `// ---- Helpers ----` or `/* ===== Auth ===== */`.
+- Allowed:
+  - PHPDoc blocks ONLY when required by static analysis (`@var`, `@property`, `@method`, `@param`/`@return` for generics or mixed types).
+  - One-line `// TODO:` / `// FIXME:` flags.
+  - Short comment (≤1 line) ONLY when the logic is genuinely non-obvious and would mislead an experienced reader.
+- When in doubt: NO COMMENT. Delete it.
 
 ## PHP
 - Use `match` over `switch`, constructor property promotion, explicit return types
@@ -41,7 +50,7 @@
 ## Database
 - UUIDs: `foreignUuid()` for foreign keys, `HasUuids` trait on models
 - Pivot tables: alphabetical order (project_role), use `withTimestamps()` if needed
-- Update `$fillable` when adding columns
+- Do NOT use `$fillable`. Projects rely on `Model::unguard()` (via nunomaduro/essentials). Skip the array entirely.
 
 ## Laravel
 - Dev URL: `http://[folder_name].test` (Laravel Herd)
