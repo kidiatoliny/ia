@@ -134,6 +134,37 @@ BLOCKED: <n> violations.
 Suggested fix order: <1, 3, 2, 4, 5>.
 ```
 
+### Ready-to-use fix prompt (MANDATORY on block)
+
+When the report is BLOCKED, the skill ALWAYS emits a fenced prompt block the
+user can paste back to drive the fix. Don't make them write it. The prompt:
+
+- Names the specific files + line ranges from the violation table.
+- Lists the rule violated for each item.
+- Proposes a concrete refactor (split path, removal target, signature change,
+  test stub, CHANGELOG entry) — not a vague "please fix".
+- Preserves: existing exports, behavior, callers, public API; says so explicitly.
+- Ends with "After fix, run <project build/test/lint> then re-run commit-guard."
+
+Format:
+
+```
+Fix the following commit-guard violations in <repo path>:
+
+<numbered list, one per violation, with file:line, rule, concrete action>
+
+Preserve: <exports/behavior/contracts that must not change>.
+After fix, run <build/test/lint command> then re-run commit-guard.
+```
+
+If multiple files violate the same rule (e.g. several files over the line
+cap), group them under that rule with a shared remediation strategy.
+
+If the only violations are authorize-able (tests missing on a portfolio,
+pre-existing file-length, etc.), additionally surface the exact
+authorization phrase the user can reply with, e.g.
+`"authorize: ignore file-length for src/sections/Products.tsx this commit"`.
+
 If everything passes:
 
 ```
