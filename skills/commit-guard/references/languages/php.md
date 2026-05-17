@@ -1,11 +1,29 @@
 # PHP / Laravel adapter
 
-No dependency on laravel-boost. Works on any PHP project, with extra rules when Laravel is detected.
+No hard dependency on laravel-boost — works on any PHP project. When the project does ship boost, leverage its MCP tools for richer validation.
 
 ## Detection
 
-- `composer.json` present, OR staged `*.php` files.
+- PHP: `composer.json` present, OR staged `*.php` files.
 - Laravel: `artisan` file at repo root and `laravel/framework` in `composer.json`.
+- laravel-boost: `laravel/boost` in `composer.json` require/require-dev (any version), OR `.mcp.json` / project config exposing boost MCP server, OR `php artisan list | grep boost` returns boost commands.
+
+When boost is detected, prefer its tools over generic fallbacks (faster, version-aware, project-aware).
+
+## Boost integration (when present)
+
+Use these boost MCP tools as part of validation:
+
+| Need                         | Boost tool                | Fallback when boost absent          |
+|------------------------------|---------------------------|-------------------------------------|
+| Docs / API reference         | `search-docs`             | manual WebFetch laravel.com/docs    |
+| Artisan command introspection| `list-artisan-commands`   | `php artisan list`                  |
+| Verify route exists          | `get-absolute-url`        | parse `php artisan route:list`      |
+| Eloquent / query smoke test  | `tinker`                  | none — surface as "boost recommended" |
+| DB read (schema, sample row) | `database-query`          | none — ask user to run query        |
+| Browser console errors       | `browser-logs`            | none — ask user                     |
+
+Boost tools are version-pinned to the project's Laravel + package versions, so docs and command lists are accurate. Do not WebFetch generic docs when boost is available.
 
 ## Required commands
 
@@ -68,6 +86,17 @@ For modified `app/Foo/Bar.php`, expect a change in `tests/Feature/Foo/BarTest.ph
 - Migrations: include all column attributes when modifying.
 - UUIDs: `foreignUuid()` for FKs, `HasUuids` trait on models.
 - Pivot tables: alphabetical (`project_role`), `withTimestamps()` if needed.
+
+## Boost-augmented checks
+
+When boost is present, the following checks become MANDATORY rather than best-effort:
+
+- **Route validation**: any new/modified controller route must be verified via `get-absolute-url` to confirm the route is registered.
+- **Artisan command verification**: new commands must appear in `list-artisan-commands` before commit.
+- **Doc-grounded API usage**: if the change uses a Laravel/Inertia/Pest API, prefer behavior verified via `search-docs` for the project's exact version. Cite the doc reference in the commit body when the API is non-trivial.
+- **Schema sanity**: when staged migrations touch existing tables, run `database-query` (read-only) to confirm assumptions about existing rows/types before commit.
+
+When boost is absent, the above remain recommended but not blocking. Surface "boost would speed this up" as info in the report.
 
 ## File length applies normally (300-line cap)
 
