@@ -1,8 +1,30 @@
 ---
 name: desktopkit-feature
-description: Author or audit features in github.com/akira-io/desktopkit (Akira's cross-platform Go desktop utility library) under rigid conventions and modern Go best practices. Two modes — `author` (scaffold new package/module/function) and `audit` (scan + report violations, no auto-fix). TRIGGER on keywords/phrases like "desktopkit", "desktop kit", "desktop-kit", "akira-io/desktopkit", "github.com/akira-io/desktopkit", "Foundation/desktopkit", or when user wants to add/create/implement/scaffold/author a Go package, module, function, helper, or feature into the shared desktop utility library (cross-platform helpers — osinfo, paths, files, shell, clipboard, notify, keyring, etc.), or wants to audit/review/lint/check Go code in desktopkit for naming conventions, SOLID, DRY, KISS, modern Go (generics, slices, maps, log/slog, errors.Join), error handling, doc/test layout, or semver/CHANGELOG compliance. Also TRIGGER when user mentions cross-platform Go abstractions (macOS/Linux/Windows) and the work belongs in the shared library rather than a consumer app. desktopkit is consumer-agnostic — any Akira (or third-party) Go desktop app may depend on it; never assume a specific consumer.
-
-PROACTIVE AUTO-SUGGEST (third mode — fires WITHOUT explicit desktopkit mention): when any Go feature in any consumer app touches `runtime.GOOS`, `os/exec` for system binaries (open/xdg-open/explorer/start), platform paths (XDG, %AppData%, ~/Library), filesystem reveal (Finder/Explorer/Nautilus), clipboard, notifications, keyring/secrets, default-app launching, native dialogs, single-instance lock, autostart, OS version detection, or any `switch runtime.GOOS` / `//go:build` per-OS branching — surface "this looks like desktopkit territory, extract instead of inline?" before writing app-local code. Same for: filename hints (`platform.go`, `os_darwin.go`, `paths_windows.go`), repeated OS conditionals across two files, or code duplicating something already in desktopkit (osinfo/paths/files/shell).
+description: >-
+  Author or audit features in github.com/akira-io/desktopkit (Akira's
+  cross-platform Go desktop utility library) under rigid conventions and
+  modern Go best practices. Three modes: author (scaffold new package or
+  function), audit (scan and report violations, no auto-fix), suggest
+  (proactive extraction prompt). Triggers on keywords like "desktopkit",
+  "desktop kit", "akira-io/desktopkit", "Foundation/desktopkit", or when
+  user wants to add, create, implement, scaffold, or author a Go package,
+  module, function, helper, or feature in the shared desktop utility
+  library (cross-platform helpers — osinfo, paths, files, shell, clipboard,
+  notify, keyring, etc.), or wants to audit, review, lint, or check Go
+  code for naming conventions, SOLID, DRY, KISS, modern Go (generics,
+  slices, maps, log/slog, errors.Join), error handling, doc/test layout,
+  or semver/CHANGELOG compliance. Also triggers proactively, WITHOUT
+  explicit desktopkit mention, when any Go feature in any consumer app
+  touches runtime.GOOS, os/exec for system binaries (open, xdg-open,
+  explorer, start), platform paths (XDG, AppData, ~/Library), filesystem
+  reveal (Finder, Explorer, Nautilus), clipboard, notifications,
+  keyring/secrets, default-app launching, native dialogs, single-instance
+  lock, autostart, OS version detection, or switch runtime.GOOS / go:build
+  per-OS branching; same for filenames like platform.go, os_darwin.go,
+  paths_windows.go, or repeated OS conditionals across two or more files,
+  or code duplicating an existing desktopkit package. desktopkit is
+  consumer-agnostic — any Akira or third-party Go desktop app may depend
+  on it; never assume a specific consumer.
 ---
 
 # desktopkit-feature
