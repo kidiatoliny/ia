@@ -33,51 +33,111 @@ Posts are written into `$REPO/src/content/writing/<slug>.mdx`. IG slide HTML is 
 
 Before writing anything, run a short interview. Use `AskUserQuestion` for each block when possible. Do NOT proceed to draft until every required answer is in.
 
-### 1.1 Subject (required)
+### 1.1 Subject (required) — pick from menu
 
-Ask: **What is this post about?**
+Use `AskUserQuestion` with these options:
 
-Sub-questions:
-- Is it about a specific Akira product (Spectra, Unified Dev, NoxDireit, Akira Debugger, Akira Packages) or about Kidiatoliny / engineering practice / career?
-- One-sentence summary in the user's own words.
+```
+question: "What is this post about?"
+header: "Subject"
+options:
+  - "Spectra"
+  - "Unified Dev"
+  - "NoxDireit"
+  - "Akira Debugger"
+  - "Akira Packages"
+  - "Personal / engineering practice / career"
+```
 
-Capture the answer verbatim. The post's working title should come from this sentence, not a generic LLM title.
+After they pick, ask one short follow-up: **One-sentence summary in your own words.** Capture verbatim. The working title comes from this sentence, not an LLM-generated one.
 
-### 1.2 Angle (required)
+### 1.2 Angle (required) — pick or write your own
 
-Ask: **What is the argument? What changes for the reader after they read this?**
+Never ask "what is the angle?" open-ended. **Generate 3 to 5 concrete candidate claims based on the subject the user gave in 1.1, plus an "Other" option.** Present them as a numbered list. The user picks one or writes a custom claim.
 
-Push back if the answer is "it explains how X works". That is a manual page, not a blog post. A post has a **point of view**: a claim the user is making that someone else might disagree with.
+Build the candidate list according to which product or theme is in play. Examples — adapt the actual claims to fit the user's specific subject sentence:
 
-Examples of accepted angles:
-- "Postman is generic. Spectra is opinionated. Generic loses."
-- "Most architecture decisions are memory-tax decisions, not technical ones."
-- "Cape Verde does not have a developer-tools market yet. Here is how I am building it anyway."
+**If subject is Spectra:**
+1. "Comecei Spectra porque Postman é wrong shape pra Laravel devs."
+2. "Spectra existe porque toda equipa Laravel reinventa Postman collections manualmente."
+3. "O primeiro feature que funcionou foi auto-discovery. Tudo dependeu disso."
+4. "Generic API clients lose. Opinionated ones win."
+5. Other: __________
 
-Examples to reject and rephrase:
-- "Spectra has cool features" → ask: which feature, and why does it matter that it exists at all?
-- "How I built X" → ask: what is the lesson someone takes away that they could not get from your README?
+**If subject is Unified Dev:**
+1. "Issue trackers and CI dashboards live apart by accident, not by design."
+2. "I built Unified Dev because context-switching between GitHub, Linear, and Vercel costs more than any of them charge."
+3. "Time tracking that lives with the branch beats time tracking that lives in a separate tool."
+4. Other: __________
 
-### 1.3 Evidence the user has (required)
+**If subject is NoxDireit:**
+1. "Cape Verde's legal market does not have a legal-tech stack. I am building one."
+2. "Generic LLMs cannot do CV jurisprudence. The corpus is the moat."
+3. "Lawyers do not want chatbots. They want drafting tools."
+4. Other: __________
 
-Ask the user to list, before drafting:
-- Specific numbers, benchmarks, timing data they want included.
-- Real anecdotes — a moment, a customer, a debugging session — that supports the angle.
-- Code samples from the actual repo, or paths to grab them from.
-- Links to prior posts, PRs, issues, or external articles to cite.
+**If subject is Akira Debugger:**
+1. "Laravel debugging is stuck in 2014. PHP 8.4 should change that."
+2. "Strict types are not a constraint. They are a debugger."
+3. Other: __________
 
-If the user has no concrete evidence, the post will be generic. Stop and tell them: "This post needs at least one specific example before it is worth writing. What is the smallest concrete thing you can attach to this argument?"
+**If subject is Akira Packages:**
+1. "Twenty-five packages, one rule: each one solves a real problem I had."
+2. "Open source compounds slower than people think and faster than people expect."
+3. Other: __________
 
-### 1.4 Audience (required)
+**If subject is personal / engineering / career:**
+1. "From an island in the Atlantic to a five-product company. The geography is not the constraint."
+2. "Most architecture decisions are memory-tax decisions, not technical ones."
+3. "I shipped X. Y broke. Z is the rule I keep."
+4. Other: __________
 
-Ask: **Who is this for?**
+If the user picks "Other", they must write a one-sentence claim. If their custom claim is a description ("explains how X works") not a point of view, push back with concrete alternatives, do not accept it. Stay in this loop until the angle is a defensible claim.
 
-Options to offer:
-- Senior backend engineers (Laravel-shaped).
-- Indie hackers / founders.
-- Cape Verdean / lusophone tech audience.
-- General product engineers.
-- Hiring managers / future collaborators.
+### 1.3 Evidence the user has (required) — present a numbered menu
+
+Never ask "what evidence do you have?" as an open prose question. **Present a numbered list of evidence categories tailored to the subject, ask the user to pick at least 2, and require concrete detail for each.** Reject categorical answers ("code samples", "numbers") — they must give the actual thing.
+
+Standard menu (adapt to the subject):
+
+```
+1. Inciting moment — the exact moment you decided to build / write this.
+   Bug? Frustration? Customer ask? Approximate date.
+2. First line of code — file path or repo URL. What was it? I will read it.
+3. First feature shipped — which one, how many days after starting.
+4. First user — real or anonymous? When? What did they say?
+5. Big rewrite — did you start from scratch ever? Why?
+6. Specific code sample — file path, function name, or PR link.
+7. Numbers — downloads, stars, latency, bundle size, line count, dates.
+8. Quote from a real conversation — Slack, email, GitHub issue. Verbatim.
+9. Comparison artifact — before/after screenshot, diff, two configs side by side.
+10. External link to cite — prior post, RFC, library docs.
+11. Other — describe.
+```
+
+Push-back rules:
+
+- If the user says "code samples" without specifying which, stop and ask which file.
+- If the user names a number without giving the value, stop and ask for the value.
+- If the user gives fewer than 2 evidence items, stop and tell them: "Two pieces minimum. Otherwise the post will read like a generic AI essay. What is the smallest concrete thing you can attach to this argument?"
+- If the user has nothing concrete, propose to drop the topic and pick one where they have evidence.
+
+Capture each evidence item verbatim. The draft will quote or reference these exact items. No paraphrasing of unverified claims.
+
+### 1.4 Audience (required) — pick from menu
+
+Use `AskUserQuestion`:
+
+```
+question: "Who is this post for?"
+header: "Audience"
+options:
+  - "Senior backend engineers (Laravel-shaped)"
+  - "Indie hackers / founders"
+  - "Cape Verdean / lusophone tech audience"
+  - "General product engineers"
+  - "Hiring managers / future collaborators"
+```
 
 The audience determines tone, depth of jargon, and what to skip.
 
@@ -111,9 +171,30 @@ options:
 
 Resist any urge to default to long. Most strong posts are medium.
 
-### 1.7 Tags (required)
+### 1.7 Tags (required) — multi-select menu
 
-Ask: **What tags?** Constrain to the existing taxonomy where possible: `dx`, `strategy`, `systems`, `engineering`, `cabo-verde`, `infra`, `ai`, `laravel`, `tauri`, `career`, `product`, `open-source`. Allow new tags only if the post genuinely opens a new category.
+Use `AskUserQuestion` with `multiSelect: true`:
+
+```
+question: "Which tags fit this post? Pick up to four."
+header: "Tags"
+multiSelect: true
+options:
+  - "dx"
+  - "strategy"
+  - "systems"
+  - "engineering"
+  - "cabo-verde"
+  - "infra"
+  - "ai"
+  - "laravel"
+  - "tauri"
+  - "career"
+  - "product"
+  - "open-source"
+```
+
+If the user wants a tag outside this taxonomy, they must justify it as a new category. Default to existing tags. Cap at 4.
 
 ### 1.8 Hero / thumbnail
 
