@@ -226,18 +226,20 @@ If user picks bilingual, plan for two MDX files with matching `translations:` cr
 
 ### 1.6 Length (required)
 
+**Hard cap: 5 minutes reading time.** At 220 wpm that is ~1100 words total. Posts that exceed this are out of spec. No exceptions.
+
 Use `AskUserQuestion`:
 
 ```
 question: "How long should this post run?"
 header: "Length"
 options:
-  - "Short (400–700 words)" — single argument, single example
-  - "Medium (800–1500 words)" — argument + 2-3 supporting moves
-  - "Long (1500–3000 words)" — deep-dive, multiple sections, code-heavy
+  - "Tiny (300–500 words, ~2 min)" — one claim, one example, one closer
+  - "Short (500–800 words, ~3 min)" — claim + 1-2 supporting moves
+  - "Standard (800–1100 words, ~5 min)" — claim + 2-3 moves + counter, MAX length
 ```
 
-Resist any urge to default to long. Most strong posts are medium.
+Default to Short. Pick Standard only when the argument genuinely needs the room. Never go over 1100 words. If the draft creeps past 1100, cut sections, not sentences.
 
 ### 1.7 Tags (required) — multi-select menu
 
@@ -328,7 +330,7 @@ These are the rules that separate human posts from LLM posts. Apply them as you 
 1. **Open on a concrete moment, a strong claim, or a contrarian one-liner.** Not a definition. Not a "have you ever wondered". Not "in today's fast-paced world".
 2. **First-person where it is honest.** "I shipped this. I was wrong. I learned." Plural "we" only when there is a real team.
 3. **Short sentences mixed with longer ones.** Vary cadence. Read the draft aloud — if every paragraph has the same shape, rewrite.
-4. **Specific over generic.** Numbers, names, file paths, commit hashes, dates. "8 minutes" beats "fast". "PHPStan level 9" beats "type-safe".
+4. **Specific over generic.** Numbers, names, file paths, dates. "8 minutes" beats "fast". "PHPStan level 9" beats "type-safe". **Do NOT use commit hashes (`ead027c`), PR numbers, or issue numbers in prose or slides.** They look like ID noise and communicate nothing to the reader. Refer to commits by message ("the second commit shipped the scanner") or by ordinal ("commit 1, commit 2"). Hashes are fine internally for recon; never publish them.
 5. **Active voice, present tense by default.**
 6. **State opinions as claims, not hedged opinions.** "This is the wrong default" not "this might arguably be considered the wrong default".
 7. **Show the cost.** Every architectural choice has a cost. State it. Acknowledging cost is the cheapest credibility signal there is.
@@ -352,7 +354,7 @@ If any of these appear in the draft, rewrite until they don't:
 - "the world of …" ("the world of APIs", "the world of developer tools")
 - "with the advent of"
 - Sentences that begin with "Moreover," "Furthermore," "Additionally," — restructure
-- Em-dash + abstract phrase pattern: "X — a paradigm shift in Y" → rewrite
+- **Em-dash (`—`) banned in prose entirely.** No parentheticals (`X — Y — Z`), no abstract phrases (`X — a paradigm shift in Y`), no clause joins. Always split into sentences, use commas, or restructure. The user has explicitly flagged em-dash usage as AI-shaped writing. Em-dash is allowed only in code blocks, technical strings, or labels where `·` is unsuitable.
 - Triple-list patterns where every list is exactly three abstract nouns: "speed, scale, and simplicity"
 
 ### Banned filler words (in copy)
@@ -361,11 +363,11 @@ If any of these appear in the draft, rewrite until they don't:
 
 ### Structure templates by length
 
-**Short (400–700w):** one hook, one claim, one anecdote, one counter, one closer. No subheadings unless needed.
+**Tiny (300–500w):** one hook, one claim, one example, one closer. No subheadings.
 
-**Medium (800–1500w):** hook → claim → 2-3 short sections with `## ` subheads → counter section → closer.
+**Short (500–800w):** hook → claim → 1-2 short sections with `## ` subheads → closer. One code block max.
 
-**Long (1500–3000w):** hook → claim → 4-6 sections, can include code blocks, diagrams, callouts → cost section → closer. Use `### ` sub-subheads sparingly.
+**Standard (800–1100w, MAX):** hook → claim → 2-3 sections → counter → closer. Code blocks count toward word total. If draft exceeds 1100w, cut a section.
 
 ### MDX components available
 
@@ -383,7 +385,7 @@ Every code block in a product post must come from the Phase 0.3 recon of `$PROJE
 - If the real code is too long for a slide, quote 3–8 lines that carry the argument. Show the truncation honestly with `// …`.
 - If the post needs a code example that does not yet exist in `$PROJECT`, stop and tell the user. Either the user writes the code first, or the post drops that section. Do not synthesise plausible-looking code.
 
-When a commit hash, PR number, issue number, or release tag is referenced, take it from `git log` in `$PROJECT`, not from memory.
+Release tags (e.g. `v0.1.0-beta.2`) are publishable when the post is about a release. Commit hashes, PR numbers, and issue numbers are NOT publishable. Use commit messages or ordinals instead. If a number is meaningful (date, count, percentage), publish the number. If it is an ID, drop it.
 
 ## Phase 4 — Voice review (delegated)
 
@@ -401,7 +403,10 @@ Self-audit checklist before declaring the post ready:
 - [ ] No banned phrases, no banned filler.
 - [ ] One counter-argument addressed.
 - [ ] Closer is a line the user could put on a t-shirt.
-- [ ] Word count matches the agreed length within ±15%.
+- [ ] Word count ≤ 1100 (5 min @ 220 wpm). Hard cap. If over, cut a section.
+- [ ] Zero em-dashes (`—`) in prose. Run `grep -n "—" <file>` and resolve every hit.
+- [ ] Zero commit hashes / PR numbers / issue numbers in prose or slides. Run `grep -nE '\b[0-9a-f]{7,}\b' <file>` and verify any hit is intentional (release tag, real-world hash mention).
+- [ ] Reading time ≤ 5 min stated in report.
 - [ ] Frontmatter complete, including `summary` that earns the click.
 - [ ] `summary` does not start with the title rephrased.
 - [ ] If product-specific, `accent` matches the product color.
@@ -492,15 +497,41 @@ Plan the slides BEFORE writing HTML. Use this order:
 5. **CTA slide** — title + "Full post at kid.akira-io.com/writing/<slug>" + swipe-handoff or "Read →" chip. Always last.
 
 Length:
-- Short post → 3 slides (hook, claim, CTA).
-- Medium post → 5 slides (hook, stake, 2 claims, CTA).
-- Long post → 7–8 slides (hook, stake, 3–4 claims, counter, CTA).
+- Tiny post (300–500w) → 3 slides (hook, claim, CTA).
+- Short post (500–800w) → 4–5 slides (hook, stake, 1–2 claims, CTA).
+- Standard post (800–1100w) → 5–6 slides (hook, stake, 2 claims, counter, CTA).
 
 Each slide's text must be repeatable out loud. If a slide takes more than 6 seconds to read, cut.
 
-### 7.4 Slide template
+### 7.4 Slide template — RICH BY DEFAULT, NEVER PLAIN TEXT
 
-Slides share a base layout. Use this skeleton — content is the only thing that changes per slide. Save as `$REPO/tmp/ig/<slug>/slide-NN.html`.
+**Hard rule:** plain text on a gradient is rejected. Every slide must carry at least one distinct visual element. The user has explicitly flagged plain-text carousels as boring ("infadonho"). Reading time on Instagram is 2 seconds per slide. Make those 2 seconds visual.
+
+**Required visual elements (use a different one per slide):**
+
+- **Timeline bar** with start/end labels and a glowing dot (great for hook with time/date framing).
+- **Manifesto card** with gradient border, optional strike-through over a key word.
+- **Terminal mock** with macOS traffic lights (red/yellow/green), titled tab, monospaced body. Use this for commits, code, git log, shell output.
+- **3-step or 2-step diagram** with bordered card cells and arrow connectors.
+- **Stat card / big number** centered with kicker tag above and supporting line below.
+- **URL block (CTA only)** with bordered frame, pill arrow button, mono path with accent color.
+- **Stack of bordered chips** for lists (3-6 small pills).
+- **Dot grid backdrop + noise overlay** is the universal base for ALL slides.
+
+**Required structural elements on EVERY slide:**
+
+- Dot-grid backdrop (`radial-gradient(circle at 1px 1px, ...)`, mask-faded to center).
+- Subtle noise layer (faint repeating linear-gradient).
+- Topbar with brand pill (`brand-dot` using conic-gradient) + project label (e.g. `kid.akira-io.com · spectra`).
+- Kicker label with prefixing horizontal rule (`.kicker::before { content: ""; width: 28px; height: 1px; background: var(--accent); }`).
+- Accent glow on key surfaces (`box-shadow: 0 0 24px color-mix(in oklab, var(--accent) 35%, transparent)`).
+- Footer dots + cta pill chip.
+
+**Reference implementation:** `tmp/ig/spectra-day-one/_gen.py` is the canonical example. Read it before generating a new carousel and adapt the slide types to the post's content. Do NOT regress to plain `<h1>` on background gradient slides.
+
+**Layout variety rule:** never produce 5 slides with the same visual treatment. If slides 1 and 2 are both "big heading + body line", slide 2 is wrong. Each slide gets a distinct treatment from the list above.
+
+Slides share a base layout for chrome only (topbar, footer, dot grid, noise). The stage content varies per slide. Save as `$REPO/tmp/ig/<slug>/slide-NN.html`.
 
 ```html
 <!doctype html>
