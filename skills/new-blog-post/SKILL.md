@@ -1,6 +1,6 @@
 ---
 name: new-blog-post
-description: Co-author a new blog post for kid.akira-io.com / akira-io.com properties. Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first, refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Handles project context (Spectra, Unified Dev, NoxDireit, Akira Packages, Akira Debugger, or personal), language selection (EN default, PT optional), MDX frontmatter, file placement, thumbnail planning, and final voice + copy-guard audit. Output is always saved into src/content/writing/<slug>.mdx of the target repo, ready to commit.
+description: Co-author a new blog post for kid.akira-io.com / akira-io.com properties. Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first, refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Handles project context (Spectra, Unified Dev, NoxDireit, Akira Packages, Akira Debugger, or personal), language selection (EN default, PT optional), MDX frontmatter, file placement, voice + copy-guard audit, and a paired Instagram asset (1080×1080 PNG + caption + URL) saved to ~/Desktop/blogs/<slug>/. Output is always saved into src/content/writing/<slug>.mdx of the target repo, ready to commit.
 ---
 
 # new-blog-post
@@ -243,7 +243,192 @@ Self-audit checklist before declaring the post ready:
    - Any open `TODO:` markers left in the draft.
 4. Do NOT commit. The user decides when to commit and push.
 
-## Phase 7 — Translation (only if user opted into bilingual)
+## Phase 7 — Instagram asset (mandatory)
+
+Every post ships with an Instagram-ready 1:1 PNG and a caption. The asset lives outside the repo so it can be uploaded straight to IG without touching git.
+
+### 7.1 Target folder
+
+```
+~/Desktop/blogs/<slug>/
+  ig.html          # 1080×1080 template, source of truth
+  ig.png           # exported via Chrome headless
+  caption.txt      # IG caption + URL + hashtags
+```
+
+Create the folder before writing files:
+
+```bash
+mkdir -p ~/Desktop/blogs/<slug>
+```
+
+### 7.2 HTML template
+
+The template is a single self-contained `index.html` styled to match the site's voice (dark, void background, neon accent, Geist display font via Google Fonts). Compose using these rules:
+
+- Canvas exactly 1080×1080 px (`<body>` is the canvas, no scrollbars).
+- Match the product or post accent color (`#7dd3fc` Spectra / `#c4b5fd` Unified Dev / `#fbbf24` NoxDireit / `#34d399` Akira Debugger / `#f472b6` Akira Packages / `#b388ff` personal).
+- Top-left brand row: small Akira mark + `kid.akira-io.com/writing`.
+- Center: title in `clamp(56px, 6vw, 96px)`, tight tracking, line-height 1.02.
+- Below title: one-line summary in muted bone.
+- Bottom-left: tag row, mono uppercase.
+- Bottom-right: `READ →` chip in accent color.
+- Subtle radial accent glow in one corner. No drop shadows. No emoji.
+
+Use this skeleton as the starting point. Edit content, do not re-style from scratch unless the user wants a new system.
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #04020a;
+      --bone: #f5f0ff;
+      --mute: rgba(245, 240, 255, 0.6);
+      --accent: ACCENT_HEX;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { width: 1080px; height: 1080px; overflow: hidden; }
+    body {
+      background: radial-gradient(ellipse at 85% 15%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 60%), var(--void);
+      color: var(--bone);
+      font-family: "Geist", system-ui, sans-serif;
+      padding: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      letter-spacing: -0.01em;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; font-family: "Geist Mono", monospace; font-size: 18px; color: var(--mute); }
+    .brand-dot { width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(135deg, #7c3aed, var(--accent)); }
+    .title {
+      font-size: clamp(56px, 7.4vw, 96px);
+      font-weight: 500;
+      line-height: 1.02;
+      letter-spacing: -0.045em;
+      max-width: 920px;
+    }
+    .accent { color: var(--accent); }
+    .summary { font-size: 28px; line-height: 1.4; color: var(--mute); max-width: 820px; margin-top: 28px; }
+    .footer { display: flex; align-items: flex-end; justify-content: space-between; }
+    .tags { display: flex; gap: 12px; font-family: "Geist Mono", monospace; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--mute); }
+    .tag { border: 1px solid rgba(245, 240, 255, 0.15); padding: 6px 12px; border-radius: 999px; }
+    .cta {
+      font-family: "Geist Mono", monospace;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+      padding: 12px 20px;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <span class="brand-dot"></span>
+    <span>kid.akira-io.com<span style="color:rgba(245,240,255,0.3);"> · writing</span></span>
+  </header>
+
+  <section>
+    <h1 class="title">TITLE_LINE_ONE <span class="accent">TITLE_LINE_TWO.</span></h1>
+    <p class="summary">SUMMARY_LINE</p>
+  </section>
+
+  <footer class="footer">
+    <ul class="tags">
+      TAGS_LIST
+    </ul>
+    <span class="cta">Read →</span>
+  </footer>
+</body>
+</html>
+```
+
+Substitutions:
+- `ACCENT_HEX` → the post accent.
+- Split `title` into two parts so the second part lands on the accent color. Pick a break that preserves rhythm.
+- `SUMMARY_LINE` → the post summary, trimmed to fit two lines max at 28px on 1080 width.
+- `TAGS_LIST` → up to 4 tags as `<li class="tag">tag</li>`. Drop the rest.
+
+If the title is short enough to fit on one line, keep `TITLE_LINE_TWO` empty and remove the trailing period span. Always proof the rendered file at 1080×1080 — adjust font-size or padding if the title clips.
+
+### 7.3 Render to PNG via Chrome headless
+
+Detect the available Chrome binary in order and use the first one that exists:
+
+```
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+"/Applications/Chromium.app/Contents/MacOS/Chromium"
+"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+```
+
+Then run:
+
+```bash
+"<CHROME>" \
+  --headless=new \
+  --disable-gpu \
+  --hide-scrollbars \
+  --no-sandbox \
+  --window-size=1080,1080 \
+  --default-background-color=00000000 \
+  --screenshot="$HOME/Desktop/blogs/<slug>/ig.png" \
+  "file://$HOME/Desktop/blogs/<slug>/ig.html"
+```
+
+After the command runs, verify the file exists and is exactly 1080×1080 (`file ~/Desktop/blogs/<slug>/ig.png` should report `PNG image data, 1080 x 1080`). If the size is off or the file is missing, re-render after fixing the template.
+
+If no Chrome binary is found, fall back to telling the user: "Open the generated `ig.html` in any browser, take a 1080×1080 screenshot, save as `ig.png` in the same folder." Do not block the rest of the phase.
+
+### 7.4 Caption
+
+Write `caption.txt` in `~/Desktop/blogs/<slug>/`. Format:
+
+```
+<HOOK_LINE>
+
+<SHORT_PARAGRAPH_FROM_POST — 2 to 3 lines, lifted or rewritten, no spoilers>
+
+Full post → https://kid.akira-io.com/writing/<slug>
+
+—
+<HASHTAG_LINE>
+```
+
+Caption rules:
+- **Hook** is one line. Strong claim, not a question. Mirror the post's angle, do not summarise the whole post.
+- Caption body 2–3 short lines. Aim for under 220 characters total before the URL — keeps the IG preview clean.
+- **No emoji.** Same skin as the site.
+- **Hashtags** 6–10, lowercase, separated by single spaces on the last line. Pick from these pools, do not invent:
+  - product: `#spectra #unifieddev #noxdireit #akiradebugger #akirapackages`
+  - topic: `#devtools #laravel #typescript #react #rust #tauri #engineering #dx #productengineering`
+  - personal: `#capeverde #luxembourg #indiehacker #foundermode`
+- Always include the post URL line. The user cannot put a URL in the IG post body, but the caption is where it goes for stories / linktree / web preview.
+- If language is PT, write the caption in PT.
+
+### 7.5 Report
+
+Print to the user:
+
+```
+IG asset:
+  Folder:  ~/Desktop/blogs/<slug>/
+  HTML:    ig.html
+  PNG:     ig.png   (1080 × 1080)
+  Caption: caption.txt
+  URL:     https://kid.akira-io.com/writing/<slug>
+```
+
+If you fell back to manual screenshot, say so explicitly.
+
+## Phase 8 — Translation (only if user opted into bilingual)
 
 For each additional language:
 
@@ -253,6 +438,7 @@ For each additional language:
 4. Save as `src/content/writing/<slug>-<lang>.mdx`.
 5. Update both files' frontmatter `translations:` to cross-link.
 6. Re-run copy-guard against the translated draft.
+7. Re-run Phase 7 for the PT version — fresh `ig.html`, fresh PNG suffixed `-pt`, fresh caption in PT pointing to `/writing/<slug>-pt`.
 
 Do not run any translation through a generic LLM-translate. The user has explicitly asked for human-feel posts. AI translation is a regression.
 
@@ -260,7 +446,7 @@ Do not run any translation through a generic LLM-translate. The user has explici
 
 - Never writes a post without intake.
 - Never invents anecdotes, customer stories, or benchmarks.
-- Never generates images. It can describe what an image would help with and ask the user to provide one.
+- Never generates illustrative or decorative imagery from a prompt. The only image it produces is the deterministic IG template render (Phase 7). For inline diagrams or screenshots, it describes what is needed and asks the user to provide them.
 - Never commits to git.
 - Never ships a draft that contains banned phrases.
 - Never picks a clickbait headline. Headlines must be the claim of the post in plain language.
