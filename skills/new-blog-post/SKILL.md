@@ -1,6 +1,6 @@
 ---
 name: new-blog-post
-description: Co-author a new blog post for kid.akira-io.com / akira-io.com properties. Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first, refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Handles project context (Spectra, Unified Dev, NoxDireit, Akira Packages, Akira Debugger, or personal), language selection (EN default, PT optional), MDX frontmatter, file placement, voice + copy-guard audit, and a paired Instagram asset (1080×1080 PNG + caption + URL) saved to ~/Desktop/blogs/<slug>/. Output is always saved into src/content/writing/<slug>.mdx of the target repo, ready to commit.
+description: Co-author a new blog post for kid.akira-io.com (the Kidiatoliny portfolio at /Users/kid/Akira/me). Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first, refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Locks the portfolio repo as the only output target (prompts for the path if it's not at the default location). Handles project context (Spectra, Unified Dev, NoxDireit, Akira Packages, Akira Debugger, or personal), language selection (EN default, PT optional), MDX frontmatter, file placement, voice + copy-guard audit, and a paired Instagram carousel (3-8 square slides, generated under the portfolio so it reuses the site palette, rendered to PNG into ~/Desktop/blogs/<slug>/). Output is always saved into src/content/writing/<slug>.mdx of the portfolio repo, ready to commit.
 ---
 
 # new-blog-post
@@ -10,6 +10,24 @@ Authoring assistant for the Akira / Kidiatoliny writing collection. The mission 
 **Hard rule:** This skill never invents facts, never invents user quotes or anecdotes, never makes up benchmarks. If the post needs a number, a story, or a concrete example and the user has not given it, **ask**.
 
 The user has explicitly asked for posts that read like a human wrote them. Treat any LLM-flavored phrasing as a regression.
+
+## Phase 0 — Locate the portfolio repo (mandatory)
+
+All output goes inside the portfolio repo. No exceptions. Before anything else:
+
+1. Check if `/Users/kid/Akira/me` exists and contains `src/content/writing/`. If yes → that is the target. Proceed.
+2. If the path does not exist or is not the portfolio, ask the user:
+
+   > Where is the portfolio repo located? It must contain `src/content/writing/` and `src/styles/global.css`.
+
+3. Validate the answer:
+   ```bash
+   test -d "$REPO/src/content/writing" && test -f "$REPO/src/styles/global.css"
+   ```
+   If validation fails, ask again. Do not guess. Do not write anything yet.
+4. Lock the path into a variable for the rest of the run. From this point, "the repo" always means this path.
+
+Posts are written into `$REPO/src/content/writing/<slug>.mdx`. IG slide HTML is generated inside `$REPO/tmp/ig/<slug>/` (gitignored) so it can pull the portfolio's CSS variables and fonts. PNG renders are output to `~/Desktop/blogs/<slug>/`.
 
 ## Phase 1 — Brief intake
 
@@ -243,39 +261,82 @@ Self-audit checklist before declaring the post ready:
    - Any open `TODO:` markers left in the draft.
 4. Do NOT commit. The user decides when to commit and push.
 
-## Phase 7 — Instagram asset (mandatory)
+## Phase 7 — Instagram carousel (mandatory)
 
-Every post ships with an Instagram-ready 1:1 PNG and a caption. The asset lives outside the repo so it can be uploaded straight to IG without touching git.
+Every post ships with an Instagram carousel — between 3 and 8 square slides — plus a caption. The carousel must:
 
-### 7.1 Target folder
+- Reuse the portfolio's CSS variables, fonts, and visual language. Never invent palette.
+- Generate slide HTML inside the portfolio repo at `$REPO/tmp/ig/<slug>/` so it has access to `$REPO/src/styles/global.css` via relative `@import` or copied variables.
+- Output rendered PNGs to `~/Desktop/blogs/<slug>/slide-01.png` … `slide-NN.png`.
+- Cycle accent colors across slides — same colors used by the portfolio, never colors outside that set.
+- Surface only **key triggers** — claims, numbers, quotes — that pull the reader to the full article. The carousel is not a summary of the post. It is the bait.
+
+### 7.1 Folders
 
 ```
-~/Desktop/blogs/<slug>/
-  ig.html          # 1080×1080 template, source of truth
-  ig.png           # exported via Chrome headless
-  caption.txt      # IG caption + URL + hashtags
+$REPO/tmp/ig/<slug>/        # gitignored, HTML source for each slide
+  slide-01.html
+  slide-02.html
+  ...
+~/Desktop/blogs/<slug>/     # output PNGs + caption
+  slide-01.png
+  slide-02.png
+  ...
+  caption.txt
 ```
 
-Create the folder before writing files:
+Create both folders before writing files. Confirm `tmp/` is gitignored in the portfolio repo (most are; if not, add `tmp/` to `.gitignore`).
 
-```bash
-mkdir -p ~/Desktop/blogs/<slug>
-```
+### 7.2 Palette — locked to portfolio
 
-### 7.2 HTML template
+The portfolio palette is defined in `$REPO/src/styles/global.css` under the `@theme` block. Read it from the file before each run — do not hardcode in the skill — and use **only** these tokens:
 
-The template is a single self-contained `index.html` styled to match the site's voice (dark, void background, neon accent, Geist display font via Google Fonts). Compose using these rules:
+| Token            | Use                                  |
+|------------------|--------------------------------------|
+| `--color-void`   | background base                      |
+| `--color-deep`   | secondary background, slide variant  |
+| `--color-ink`    | tertiary background                  |
+| `--color-fog`    | subtle surfaces, borders             |
+| `--color-bone`   | primary text                         |
+| `--color-violet` | accent A                             |
+| `--color-neon`   | accent B (default for personal)      |
+| `--color-glow`   | accent C                             |
+| `--color-cyan`   | accent D (Spectra)                   |
+| `--color-amber`  | accent E (NoxDireit)                 |
+| `--color-magenta`| accent F (Akira Packages)            |
+| `--color-jade`   | accent G (Akira Debugger)            |
 
-- Canvas exactly 1080×1080 px (`<body>` is the canvas, no scrollbars).
-- Match the product or post accent color (`#7dd3fc` Spectra / `#c4b5fd` Unified Dev / `#fbbf24` NoxDireit / `#34d399` Akira Debugger / `#f472b6` Akira Packages / `#b388ff` personal).
-- Top-left brand row: small Akira mark + `kid.akira-io.com/writing`.
-- Center: title in `clamp(56px, 6vw, 96px)`, tight tracking, line-height 1.02.
-- Below title: one-line summary in muted bone.
-- Bottom-left: tag row, mono uppercase.
-- Bottom-right: `READ →` chip in accent color.
-- Subtle radial accent glow in one corner. No drop shadows. No emoji.
+Accent rotation for the carousel — pick a primary based on the post's `accent` frontmatter (or product), then cycle through complementary tokens for subsequent slides:
 
-Use this skeleton as the starting point. Edit content, do not re-style from scratch unless the user wants a new system.
+- Personal posts → `[neon, cyan, amber, jade, magenta, glow, violet]`
+- Spectra posts → `[cyan, neon, glow, violet]`
+- Unified Dev posts → `[neon, glow, violet, cyan]`
+- NoxDireit posts → `[amber, neon, glow, magenta]`
+- Akira Debugger posts → `[jade, neon, cyan, glow]`
+- Akira Packages posts → `[magenta, neon, glow, violet]`
+
+Cycle and reuse if there are more slides than colors in the list. Do not introduce any new color.
+
+### 7.3 Slide types and order
+
+Plan the slides BEFORE writing HTML. Use this order:
+
+1. **Hook slide** — the post's strongest one-liner. Big type. Title-level. Same accent as the OG card.
+2. **Stake slide** — what's at risk if you ignore this. One short sentence.
+3. **Claim slides (1–3)** — each carries one specific trigger: a number, a contrarian one-liner, a named example. One idea per slide.
+4. **Counter slide** (optional) — the obvious counter, addressed in a single line.
+5. **CTA slide** — title + "Full post at kid.akira-io.com/writing/<slug>" + swipe-handoff or "Read →" chip. Always last.
+
+Length:
+- Short post → 3 slides (hook, claim, CTA).
+- Medium post → 5 slides (hook, stake, 2 claims, CTA).
+- Long post → 7–8 slides (hook, stake, 3–4 claims, counter, CTA).
+
+Each slide's text must be repeatable out loud. If a slide takes more than 6 seconds to read, cut.
+
+### 7.4 Slide template
+
+Slides share a base layout. Use this skeleton — content is the only thing that changes per slide. Save as `$REPO/tmp/ig/<slug>/slide-NN.html`.
 
 ```html
 <!doctype html>
@@ -284,82 +345,198 @@ Use this skeleton as the starting point. Edit content, do not re-style from scra
   <meta charset="utf-8" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
+    /* mirrors $REPO/src/styles/global.css @theme palette */
     :root {
-      --void: #04020a;
-      --bone: #f5f0ff;
-      --mute: rgba(245, 240, 255, 0.6);
-      --accent: ACCENT_HEX;
+      --color-void: #04020a;
+      --color-deep: #0a0518;
+      --color-ink: #120a26;
+      --color-fog: #1d1438;
+      --color-violet: #7c3aed;
+      --color-neon: #b388ff;
+      --color-glow: #d8b4fe;
+      --color-bone: #f5f0ff;
+      --color-amber: #fbbf24;
+      --color-cyan: #7dd3fc;
+      --color-magenta: #f472b6;
+      --color-jade: #34d399;
+
+      --bg: var(--color-void);
+      --fg: var(--color-bone);
+      --mute: color-mix(in oklab, var(--color-bone) 55%, transparent);
+      --hairline: color-mix(in oklab, var(--color-bone) 12%, transparent);
+      --accent: ACCENT_TOKEN;
     }
+
     * { box-sizing: border-box; margin: 0; }
     html, body { width: 1080px; height: 1080px; overflow: hidden; }
     body {
-      background: radial-gradient(ellipse at 85% 15%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 60%), var(--void);
-      color: var(--bone);
+      background:
+        radial-gradient(ellipse at 85% 15%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 58%),
+        radial-gradient(ellipse at 10% 95%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 55%),
+        var(--bg);
+      color: var(--fg);
       font-family: "Geist", system-ui, sans-serif;
-      padding: 80px;
+      padding: 88px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       letter-spacing: -0.01em;
     }
-    .brand { display: flex; align-items: center; gap: 14px; font-family: "Geist Mono", monospace; font-size: 18px; color: var(--mute); }
-    .brand-dot { width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(135deg, #7c3aed, var(--accent)); }
-    .title {
-      font-size: clamp(56px, 7.4vw, 96px);
+
+    /* ── header */
+    .topbar { display: flex; align-items: center; justify-content: space-between; font-family: "Geist Mono", monospace; font-size: 18px; color: var(--mute); }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-dot { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, var(--color-violet), var(--accent)); }
+    .counter { font-variant-numeric: tabular-nums; }
+
+    /* ── center content variants */
+    .stage { display: flex; flex-direction: column; justify-content: center; gap: 24px; flex: 1; }
+
+    .display-xl {
+      font-size: 108px;
+      font-weight: 500;
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+      max-width: 920px;
+    }
+    .display-lg {
+      font-size: 84px;
       font-weight: 500;
       line-height: 1.02;
       letter-spacing: -0.045em;
       max-width: 920px;
     }
+    .display-md {
+      font-size: 62px;
+      font-weight: 500;
+      line-height: 1.1;
+      letter-spacing: -0.035em;
+      max-width: 880px;
+    }
+    .body-lg {
+      font-size: 30px;
+      line-height: 1.45;
+      color: var(--mute);
+      max-width: 820px;
+    }
+    .number {
+      font-size: 220px;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.06em;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
     .accent { color: var(--accent); }
-    .summary { font-size: 28px; line-height: 1.4; color: var(--mute); max-width: 820px; margin-top: 28px; }
+    .kicker {
+      font-family: "Geist Mono", monospace;
+      font-size: 16px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .quote::before {
+      content: "“";
+      color: var(--accent);
+      font-size: 1.2em;
+      line-height: 0;
+      margin-right: 0.1em;
+    }
+
+    /* ── footer */
     .footer { display: flex; align-items: flex-end; justify-content: space-between; }
-    .tags { display: flex; gap: 12px; font-family: "Geist Mono", monospace; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--mute); }
-    .tag { border: 1px solid rgba(245, 240, 255, 0.15); padding: 6px 12px; border-radius: 999px; }
+    .dots { display: flex; gap: 8px; }
+    .dot {
+      width: 10px; height: 10px; border-radius: 999px;
+      background: color-mix(in oklab, var(--color-bone) 18%, transparent);
+    }
+    .dot.on { background: var(--accent); }
     .cta {
       font-family: "Geist Mono", monospace;
       font-size: 16px;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
       color: var(--accent);
       border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
       padding: 12px 20px;
       border-radius: 999px;
     }
+    .url {
+      font-family: "Geist Mono", monospace;
+      font-size: 18px;
+      color: var(--mute);
+    }
+    .url .path { color: var(--fg); }
   </style>
 </head>
 <body>
-  <header class="brand">
-    <span class="brand-dot"></span>
-    <span>kid.akira-io.com<span style="color:rgba(245,240,255,0.3);"> · writing</span></span>
+  <header class="topbar">
+    <span class="brand">
+      <span class="brand-dot"></span>
+      <span>kid.akira-io.com</span>
+    </span>
+    <span class="counter">NN · TOTAL</span>
   </header>
 
-  <section>
-    <h1 class="title">TITLE_LINE_ONE <span class="accent">TITLE_LINE_TWO.</span></h1>
-    <p class="summary">SUMMARY_LINE</p>
+  <section class="stage">
+    <!-- SLIDE_BODY -->
   </section>
 
   <footer class="footer">
-    <ul class="tags">
-      TAGS_LIST
-    </ul>
-    <span class="cta">Read →</span>
+    <span class="dots">
+      <!-- DOTS -->
+    </span>
+    <span class="cta">FOOTER_CTA</span>
   </footer>
 </body>
 </html>
 ```
 
 Substitutions:
-- `ACCENT_HEX` → the post accent.
-- Split `title` into two parts so the second part lands on the accent color. Pick a break that preserves rhythm.
-- `SUMMARY_LINE` → the post summary, trimmed to fit two lines max at 28px on 1080 width.
-- `TAGS_LIST` → up to 4 tags as `<li class="tag">tag</li>`. Drop the rest.
 
-If the title is short enough to fit on one line, keep `TITLE_LINE_TWO` empty and remove the trailing period span. Always proof the rendered file at 1080×1080 — adjust font-size or padding if the title clips.
+- `ACCENT_TOKEN` → one of `var(--color-neon)`, `var(--color-cyan)`, etc. — picked from the rotation in 7.2.
+- `NN · TOTAL` → e.g. `02 · 05`. Use middle dot, never `/`.
+- `DOTS` → one `<span class="dot on"></span>` for current slide, the rest `<span class="dot"></span>`. Total dots = total slides.
+- `FOOTER_CTA`:
+  - Slides 1 through N-1 → `SWIPE →` (no period).
+  - Last slide → `READ → KID.AKIRA-IO.COM/WRITING/<SLUG>` truncated if needed, OR a short `READ →` chip alongside a `.url` block in the body.
 
-### 7.3 Render to PNG via Chrome headless
+`SLIDE_BODY` examples — pick the variant that matches the slide type:
+
+```html
+<!-- hook: -->
+<h1 class="display-xl">HOOK <span class="accent">PUNCH.</span></h1>
+
+<!-- stake: -->
+<span class="kicker">STAKE</span>
+<p class="display-lg">SHORT_STATEMENT.</p>
+
+<!-- claim with number: -->
+<span class="kicker">CLAIM_LABEL</span>
+<p class="number">32K+</p>
+<p class="body-lg">SUPPORTING_LINE.</p>
+
+<!-- claim as one-liner: -->
+<p class="display-md accent">ONE_LINE_CLAIM.</p>
+
+<!-- quote: -->
+<p class="display-md quote">QUOTE_FROM_POST.</p>
+
+<!-- counter: -->
+<span class="kicker">COUNTER</span>
+<p class="display-md">OBVIOUS_COUNTER_LINE.</p>
+
+<!-- CTA last slide: -->
+<span class="kicker">FULL POST</span>
+<p class="display-lg">READ_LINE.</p>
+<p class="url">kid.akira-io.com<span class="path">/writing/<SLUG></span></p>
+```
+
+Choose accents per slide from the rotation list, never outside the palette. Re-cycle if you run out.
+
+### 7.5 Render to PNG via Chrome headless
 
 Detect the available Chrome binary in order and use the first one that exists:
 
@@ -369,25 +546,25 @@ Detect the available Chrome binary in order and use the first one that exists:
 "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 ```
 
-Then run:
+Render each slide individually:
 
 ```bash
-"<CHROME>" \
+"$CHROME" \
   --headless=new \
   --disable-gpu \
   --hide-scrollbars \
   --no-sandbox \
   --window-size=1080,1080 \
   --default-background-color=00000000 \
-  --screenshot="$HOME/Desktop/blogs/<slug>/ig.png" \
-  "file://$HOME/Desktop/blogs/<slug>/ig.html"
+  --screenshot="$HOME/Desktop/blogs/<slug>/slide-NN.png" \
+  "file://$REPO/tmp/ig/<slug>/slide-NN.html"
 ```
 
-After the command runs, verify the file exists and is exactly 1080×1080 (`file ~/Desktop/blogs/<slug>/ig.png` should report `PNG image data, 1080 x 1080`). If the size is off or the file is missing, re-render after fixing the template.
+Loop NN from 01 to TOTAL. After every render verify the file is `PNG image data, 1080 x 1080`. If any slide fails, re-render after fixing the template.
 
-If no Chrome binary is found, fall back to telling the user: "Open the generated `ig.html` in any browser, take a 1080×1080 screenshot, save as `ig.png` in the same folder." Do not block the rest of the phase.
+If no Chrome binary is found, fall back: instruct the user to open each `tmp/ig/<slug>/slide-NN.html`, screenshot at 1080×1080, save as `slide-NN.png`.
 
-### 7.4 Caption
+### 7.6 Caption
 
 Write `caption.txt` in `~/Desktop/blogs/<slug>/`. Format:
 
@@ -396,6 +573,7 @@ Write `caption.txt` in `~/Desktop/blogs/<slug>/`. Format:
 
 <SHORT_PARAGRAPH_FROM_POST — 2 to 3 lines, lifted or rewritten, no spoilers>
 
+Swipe → for the key points.
 Full post → https://kid.akira-io.com/writing/<slug>
 
 —
@@ -404,26 +582,26 @@ Full post → https://kid.akira-io.com/writing/<slug>
 
 Caption rules:
 - **Hook** is one line. Strong claim, not a question. Mirror the post's angle, do not summarise the whole post.
-- Caption body 2–3 short lines. Aim for under 220 characters total before the URL — keeps the IG preview clean.
+- Caption body 2–3 short lines. Aim for under 220 characters total before the URLs — keeps the IG preview clean.
 - **No emoji.** Same skin as the site.
-- **Hashtags** 6–10, lowercase, separated by single spaces on the last line. Pick from these pools, do not invent:
+- **Hashtags** 6–10, lowercase, single spaces on the last line. Pick from these pools, do not invent:
   - product: `#spectra #unifieddev #noxdireit #akiradebugger #akirapackages`
   - topic: `#devtools #laravel #typescript #react #rust #tauri #engineering #dx #productengineering`
   - personal: `#capeverde #luxembourg #indiehacker #foundermode`
-- Always include the post URL line. The user cannot put a URL in the IG post body, but the caption is where it goes for stories / linktree / web preview.
+- Always include the post URL line.
 - If language is PT, write the caption in PT.
 
-### 7.5 Report
+### 7.7 Report
 
 Print to the user:
 
 ```
-IG asset:
-  Folder:  ~/Desktop/blogs/<slug>/
-  HTML:    ig.html
-  PNG:     ig.png   (1080 × 1080)
-  Caption: caption.txt
-  URL:     https://kid.akira-io.com/writing/<slug>
+IG carousel (N slides):
+  HTML source: $REPO/tmp/ig/<slug>/
+  PNG output:  ~/Desktop/blogs/<slug>/slide-01.png … slide-NN.png   (1080 × 1080 each)
+  Caption:     ~/Desktop/blogs/<slug>/caption.txt
+  URL:         https://kid.akira-io.com/writing/<slug>
+  Accent palette used: <list>
 ```
 
 If you fell back to manual screenshot, say so explicitly.
@@ -438,7 +616,7 @@ For each additional language:
 4. Save as `src/content/writing/<slug>-<lang>.mdx`.
 5. Update both files' frontmatter `translations:` to cross-link.
 6. Re-run copy-guard against the translated draft.
-7. Re-run Phase 7 for the PT version — fresh `ig.html`, fresh PNG suffixed `-pt`, fresh caption in PT pointing to `/writing/<slug>-pt`.
+7. Re-run Phase 7 for the PT version — fresh slides under `$REPO/tmp/ig/<slug>-pt/`, PNGs into `~/Desktop/blogs/<slug>-pt/slide-NN.png`, caption in PT pointing to `/writing/<slug>-pt`. Same accent rotation, translated copy.
 
 Do not run any translation through a generic LLM-translate. The user has explicitly asked for human-feel posts. AI translation is a regression.
 
