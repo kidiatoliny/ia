@@ -1,6 +1,6 @@
 ---
 name: new-blog-post
-description: Co-author a new blog post for kid.akira-io.com (the Kidiatoliny portfolio at /Users/kid/Akira/me). Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first via numbered menus (subject, angle, evidence, audience, language, length, tags), refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Locks the portfolio repo as the only output target (prompts for the path if it's not at the default location). When a post is product-specific (Spectra, Unified Dev, NoxDireit, Akira Packages, Akira Debugger), it ALSO locates that product's source repo and grounds every code sample, file path, commit hash, and feature claim in the actual codebase via a read-only recon pass — never invents code. Handles language selection (EN default, PT optional), MDX frontmatter, file placement, voice + copy-guard audit, and a paired Instagram carousel (3-8 square slides, generated under the portfolio so it reuses the site palette, rendered to PNG into ~/Desktop/blogs/<slug>/). Output is always saved into src/content/writing/<slug>.mdx of the portfolio repo, ready to commit.
+description: Co-author a new blog post for kid.akira-io.com (the Kidiatoliny portfolio at /Users/kid/Akira/me). Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first via numbered menus (subject, angle, evidence, audience, language, length, tags), refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Locks the portfolio repo as the only output target (prompts for the path if it's not at the default location). When a post is product-specific (Spectra, Unified Dev, Akira Billing, Akira Debugger, Akira Packages, Orbit, Hyperion), it ALSO locates that product's source repo and grounds every code sample, file path, commit hash, and feature claim in the actual codebase via a read-only recon pass — never invents code. Handles language selection (EN default, PT optional), MDX frontmatter, file placement, voice + copy-guard audit, and a paired Instagram carousel (3-8 square slides, generated under the portfolio so it reuses the site palette, rendered to PNG into ~/Desktop/blogs/<slug>/). Output is always saved into src/content/writing/<slug>.mdx of the portfolio repo, ready to commit.
 ---
 
 # new-blog-post
@@ -40,9 +40,11 @@ Try these default paths in order, pick the first that exists and looks like a co
 |-------------------|--------------------------------------------------------------------------------------------------|
 | Spectra           | `~/Akira/Foundation/spectra` · `~/Akira/Foundation/spectra-app` · `~/Akira/Foundation/spectra-landing-page` |
 | Unified Dev       | `~/Akira/Foundation/unified-dev` · `~/Akira/akira-io` · `~/Akira/Foundation/akira-io.com`        |
-| NoxDireit         | `~/Akira/Foundation/noxdireit` · `~/Akira/Foundation/nox` · `~/Akira/Foundation/legal-cv`        |
+| Akira Billing     | `~/Akira/Foundation/akira-billing` · `~/Akira/Foundation/billing`                                |
 | Akira Debugger    | `~/Akira/Foundation/laravel-debugger` · `~/Akira/Foundation/akira-debugger`                      |
 | Akira Packages    | `~/Akira/Foundation/akira-packages` · `~/Akira/akira-io` · `~/Akira/Foundation/packages`         |
+| Orbit             | `~/Akira/Foundation/orbit` · `~/Akira/orbit`                                                     |
+| Hyperion          | `~/Akira/Foundation/hyperion` · `~/Akira/hyperion`                                               |
 
 If none exist, ask the user:
 
@@ -97,9 +99,11 @@ header: "Subject"
 options:
   - "Spectra"
   - "Unified Dev"
-  - "NoxDireit"
+  - "Akira Billing"
   - "Akira Debugger"
   - "Akira Packages"
+  - "Orbit"
+  - "Hyperion"
   - "Personal / engineering practice / career"
 ```
 
@@ -124,11 +128,21 @@ Build the candidate list according to which product or theme is in play. Example
 3. "Time tracking that lives with the branch beats time tracking that lives in a separate tool."
 4. Other: __________
 
-**If subject is NoxDireit:**
-1. "Cape Verde's legal market does not have a legal-tech stack. I am building one."
-2. "Generic LLMs cannot do CV jurisprudence. The corpus is the moat."
-3. "Lawyers do not want chatbots. They want drafting tools."
+**If subject is Akira Billing:**
+1. "Billing is product engineering, not finance plumbing."
+2. "Stripe is generic. Subscription products that ship faster ship their own billing surface."
+3. "The bug that taught me invoices are state, not events."
 4. Other: __________
+
+**If subject is Orbit:**
+1. "Orbit is the layer the platform forgot to ship."
+2. "I built Orbit because the rotation between projects was a tax I refused to keep paying."
+3. Other: __________
+
+**If subject is Hyperion:**
+1. "Hyperion is what happens when you stop trusting the framework defaults."
+2. "Strict types, strict transport, strict contract — Hyperion is the smallest one I ship with."
+3. Other: __________
 
 **If subject is Akira Debugger:**
 1. "Laravel debugging is stuck in 2014. PHP 8.4 should change that."
@@ -298,12 +312,14 @@ translations:
 ```
 
 Accent palette to use when product-specific:
-- Spectra → `#7dd3fc`
-- Unified Dev → `#c4b5fd`
-- NoxDireit → `#fbbf24`
-- Akira Debugger → `#34d399`
-- Akira Packages → `#f472b6`
-- Personal / general → `#b388ff`
+- Spectra → `#7dd3fc` (cyan)
+- Unified Dev → `#c4b5fd` (neon)
+- Akira Billing → `#d8b4fe` (glow)
+- Akira Debugger → `#34d399` (jade)
+- Akira Packages → `#f472b6` (magenta)
+- Orbit → `#7c3aed` (violet)
+- Hyperion → `#fbbf24` (amber)
+- Personal / general → `#b388ff` (neon)
 
 ### Voice rules — non-negotiable
 
@@ -457,9 +473,11 @@ Accent rotation for the carousel — pick a primary based on the post's `accent`
 - Personal posts → `[neon, cyan, amber, jade, magenta, glow, violet]`
 - Spectra posts → `[cyan, neon, glow, violet]`
 - Unified Dev posts → `[neon, glow, violet, cyan]`
-- NoxDireit posts → `[amber, neon, glow, magenta]`
+- Akira Billing posts → `[glow, neon, cyan, violet]`
 - Akira Debugger posts → `[jade, neon, cyan, glow]`
 - Akira Packages posts → `[magenta, neon, glow, violet]`
+- Orbit posts → `[violet, neon, glow, cyan]`
+- Hyperion posts → `[amber, glow, neon, magenta]`
 
 Cycle and reuse if there are more slides than colors in the list. Do not introduce any new color.
 
@@ -731,7 +749,7 @@ Caption rules:
 - Caption body 2–3 short lines. Aim for under 220 characters total before the URLs — keeps the IG preview clean.
 - **No emoji.** Same skin as the site.
 - **Hashtags** 6–10, lowercase, single spaces on the last line. Pick from these pools, do not invent:
-  - product: `#spectra #unifieddev #noxdireit #akiradebugger #akirapackages`
+  - product: `#spectra #unifieddev #akirabilling #akiradebugger #akirapackages #orbit #hyperion`
   - topic: `#devtools #laravel #typescript #react #rust #tauri #engineering #dx #productengineering`
   - personal: `#capeverde #luxembourg #indiehacker #foundermode`
 - Always include the post URL line.
