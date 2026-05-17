@@ -152,7 +152,7 @@ Write the post into `src/content/writing/<slug>.mdx` of the target repo (default
 ---
 title: "<the actual headline, sentence case>"
 summary: "<one sentence, 110–160 chars, that earns the click>"
-date: <ISO date today>
+date: <full ISO datetime at the moment of writing, e.g. 2026-05-17T18:00:00Z — distinct timestamps avoid same-day sort ties>
 tags: [<from intake>]
 draft: false
 lang: en   # or pt
@@ -591,7 +591,76 @@ Caption rules:
 - Always include the post URL line.
 - If language is PT, write the caption in PT.
 
-### 7.7 Report
+### 7.7 Share copy per platform (mandatory)
+
+Write `share.md` to `~/Desktop/blogs/<slug>/`. This file holds ready-to-paste share copy with a fresh hook per platform — never reuse the summary verbatim. The summary is for the OG card. The share copy is the trigger.
+
+Structure:
+
+```markdown
+# <slug> — share copy
+
+URL: https://kid.akira-io.com/writing/<slug>
+OG image: /og/<slug>.png (auto-generated at build)
+IG carousel cover: ~/Desktop/blogs/<slug>/slide-01.png
+
+---
+
+## X / Twitter (≤ 280 chars)
+<HOOK_X>
+
+https://kid.akira-io.com/writing/<slug>
+
+---
+
+## Bluesky (≤ 300 chars)
+<HOOK_BLUESKY>
+
+https://kid.akira-io.com/writing/<slug>
+
+---
+
+## LinkedIn (1-2 short paragraphs, professional)
+<HOOK_LINKEDIN_PARAGRAPH>
+
+<OPTIONAL_FOLLOWUP_PARAGRAPH>
+
+https://kid.akira-io.com/writing/<slug>
+
+---
+
+## Threads / Mastodon (≤ 500 chars)
+<HOOK_THREADS>
+
+https://kid.akira-io.com/writing/<slug>
+
+---
+
+## IG caption (uses ~/Desktop/blogs/<slug>/caption.txt)
+See caption.txt for IG-specific copy with hashtags.
+
+---
+
+## Hashtag pool used
+<pool list>
+```
+
+Rules for the hooks:
+
+- Each platform gets a **different** opening line. Never copy-paste the summary.
+- **X / Twitter:** punchy contrarian one-liner. Cut every word that does not earn its slot.
+- **Bluesky:** slightly more space, more personality. Can be a two-beat hook ("I shipped X. It broke. Here is why I did Y.").
+- **LinkedIn:** lead with the lesson, not the story. One paragraph of setup, one of takeaway. Avoid corporate voice — keep it human, but with more context than X.
+- **Threads / Mastodon:** match Bluesky energy.
+- Always end with the post URL on its own line.
+- No emoji. No banned phrases. Run the same voice rules from Phase 3.
+- Include the OG image / IG cover references at the top so the user knows what preview will render.
+
+If a deploy has not happened yet, add a note at the top:
+
+> Note: previews will only render after deploying the post. Until then, social share boxes will show URL-only.
+
+### 7.8 Report
 
 Print to the user:
 
@@ -600,6 +669,8 @@ IG carousel (N slides):
   HTML source: $REPO/tmp/ig/<slug>/
   PNG output:  ~/Desktop/blogs/<slug>/slide-01.png … slide-NN.png   (1080 × 1080 each)
   Caption:     ~/Desktop/blogs/<slug>/caption.txt
+  Share copy:  ~/Desktop/blogs/<slug>/share.md  (X · Bluesky · LinkedIn · Threads)
+  OG image:    /og/<slug>.png (built into dist/, live after deploy)
   URL:         https://kid.akira-io.com/writing/<slug>
   Accent palette used: <list>
 ```
