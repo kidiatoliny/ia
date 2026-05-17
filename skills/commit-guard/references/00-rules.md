@@ -2,10 +2,25 @@
 
 These 10 rules are non-negotiable. Apply to every language, every project, every commit and push.
 
-## 1. File length — 300 lines hard cap
+## 1. File length — language-aware caps
 
-- Every source file must be ≤ 300 lines (including blank lines, excluding generated/vendored).
-- At 301+, block. Surface a concrete split plan: which functions/types move to which new file, what to name them, how imports reshape.
+Per-language hard caps (including blank lines, excluding generated/vendored):
+
+| Language        | Soft warn | Hard block |
+|-----------------|-----------|------------|
+| TS/JS plain     | 250       | 300        |
+| TSX/JSX (React) | 320       | 400        |
+| Vue SFC         | 320       | 400        |
+| Astro `.astro`  | 250       | 300        |
+| PHP             | 220       | 250        |
+| Go              | 220       | 250        |
+| Rust            | 280       | 350        |
+| Python          | 250       | 300        |
+| Ruby            | 220       | 250        |
+| CSS / Tailwind  | 250       | 300        |
+
+- At soft-warn, surface a split suggestion but allow commit.
+- At hard-block, block. Surface a concrete split plan: which functions/components/composables move where, what to name them, how imports reshape.
 - Generated and vendored files are exempt — they live in their own directories and are auto-detected. Exemptions include:
   - Codegen output: `proto/gen/`, `__generated__/`, GraphQL codegen, `wailsjs/`, `prisma/generated/`, OpenAPI codegen.
   - Migrations.

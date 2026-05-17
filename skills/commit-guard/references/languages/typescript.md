@@ -60,8 +60,15 @@ For modified `foo.ts`, expect `foo.test.ts` or `foo.spec.ts` change in the same 
 
 ## React-specific
 
-- Smart vs Dumb components, components < 200 lines.
-- Extract reusable logic into custom hooks.
+- Smart vs Dumb components; components ≤ 320 soft / 400 hard cap (TSX inflates fast due to JSX).
+- **Always abstract reusable logic into custom hooks**. Patterns that MUST move into a hook:
+  - Two or more components doing the same `useEffect` subscription (resize, scroll, online/offline, intersection, mutation observer, theme, idle, document visibility).
+  - Any component owning local-storage / session-storage read+write+sync.
+  - Any component that mixes async fetch + loading + error state inline.
+  - Any component with a controllable form field used in more than one place (debounce, throttle, copy-to-clipboard, hover, focus, click-outside, hotkey).
+  - Repeated `useState` + handler pair used in ≥ 2 sites.
+- **Reference catalog: https://usehooks.com** — before writing a custom hook from scratch, check usehooks.com for a known-good implementation of the pattern (useDebounce, useClickOutside, useIntersectionObserver, useLocalStorage, useEventListener, useCopyToClipboard, useHover, useIdle, useKeyPress, useMediaQuery, useOnScreen, useScript, useThrottle, useToggle, useWindowSize, useDarkMode, useFetch). Adapt to project conventions; don't reinvent.
+- Hook file convention: `src/hooks/useThing.ts`, named export `useThing`, return tuple `[value, setter]` or object — match React community idioms.
 - Zustand for global state / localStorage; Context for shared per-tree data.
 - shadcn/ui primitives.
 - Lucide icons (no emoji icons).
@@ -70,7 +77,7 @@ For modified `foo.ts`, expect `foo.test.ts` or `foo.spec.ts` change in the same 
 
 ## File length
 
-300-line cap. Component files frequently grow via inline subcomponents — split inline subcomponents into sibling files before the cap.
+TS/JS plain: 250 soft / 300 hard. TSX/JSX: 320 soft / 400 hard. Component files frequently grow via inline subcomponents — split inline subcomponents into sibling files before the cap. Extract hook logic from the component as soon as the inline `useEffect` body grows past 12 lines or any logic block repeats in another component.
 
 ## Exempt directories (auto-detected)
 
