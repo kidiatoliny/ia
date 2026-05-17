@@ -1,6 +1,6 @@
 ---
 name: new-blog-post
-description: Co-author a new blog post for kid.akira-io.com (the Kidiatoliny portfolio at /Users/kid/Akira/me). Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first, refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Locks the portfolio repo as the only output target (prompts for the path if it's not at the default location). Handles project context (Spectra, Unified Dev, NoxDireit, Akira Packages, Akira Debugger, or personal), language selection (EN default, PT optional), MDX frontmatter, file placement, voice + copy-guard audit, and a paired Instagram carousel (3-8 square slides, generated under the portfolio so it reuses the site palette, rendered to PNG into ~/Desktop/blogs/<slug>/). Output is always saved into src/content/writing/<slug>.mdx of the portfolio repo, ready to commit.
+description: Co-author a new blog post for kid.akira-io.com (the Kidiatoliny portfolio at /Users/kid/Akira/me). Use when the user says "write a blog post", "new post", "new blog post", "/new-post", "publish a post", "draft a post", "write about X for the blog", or otherwise signals they want to author long-form writing. This skill REFUSES to ghostwrite — it interviews the user first via numbered menus (subject, angle, evidence, audience, language, length, tags), refuses to invent stories, and produces drafts that read like a senior engineer wrote them, not an LLM. Locks the portfolio repo as the only output target (prompts for the path if it's not at the default location). When a post is product-specific (Spectra, Unified Dev, NoxDireit, Akira Packages, Akira Debugger), it ALSO locates that product's source repo and grounds every code sample, file path, commit hash, and feature claim in the actual codebase via a read-only recon pass — never invents code. Handles language selection (EN default, PT optional), MDX frontmatter, file placement, voice + copy-guard audit, and a paired Instagram carousel (3-8 square slides, generated under the portfolio so it reuses the site palette, rendered to PNG into ~/Desktop/blogs/<slug>/). Output is always saved into src/content/writing/<slug>.mdx of the portfolio repo, ready to commit.
 ---
 
 # new-blog-post
@@ -11,23 +11,77 @@ Authoring assistant for the Akira / Kidiatoliny writing collection. The mission 
 
 The user has explicitly asked for posts that read like a human wrote them. Treat any LLM-flavored phrasing as a regression.
 
-## Phase 0 — Locate the portfolio repo (mandatory)
+## Phase 0 — Locate repos (mandatory)
 
-All output goes inside the portfolio repo. No exceptions. Before anything else:
+All post output goes inside the portfolio repo. When the post is product-specific, the skill ALSO needs to locate the product's source repo so it can ground code samples and file paths in real code instead of inventing them.
 
-1. Check if `/Users/kid/Akira/me` exists and contains `src/content/writing/`. If yes → that is the target. Proceed.
-2. If the path does not exist or is not the portfolio, ask the user:
+### 0.1 Portfolio repo (always)
+
+1. Check if `/Users/kid/Akira/me` exists and contains `src/content/writing/`. If yes → that is the portfolio target. Lock as `$REPO`.
+2. If missing, ask the user:
 
    > Where is the portfolio repo located? It must contain `src/content/writing/` and `src/styles/global.css`.
 
-3. Validate the answer:
+3. Validate:
    ```bash
-   test -d "$REPO/src/content/writing" && test -f "$REPO/src/styles/global.css"
+   [ -d "$REPO/src/content/writing" ] && [ -f "$REPO/src/styles/global.css" ]
    ```
-   If validation fails, ask again. Do not guess. Do not write anything yet.
-4. Lock the path into a variable for the rest of the run. From this point, "the repo" always means this path.
+   If validation fails, ask again. Do not guess.
 
-Posts are written into `$REPO/src/content/writing/<slug>.mdx`. IG slide HTML is generated inside `$REPO/tmp/ig/<slug>/` (gitignored) so it can pull the portfolio's CSS variables and fonts. PNG renders are output to `~/Desktop/blogs/<slug>/`.
+Posts → `$REPO/src/content/writing/<slug>.mdx`. IG slides → `$REPO/tmp/ig/<slug>/` (gitignored). PNG renders → `~/Desktop/blogs/<slug>/`.
+
+### 0.2 Product source repo (when post is product-specific)
+
+Once Phase 1.1 returns a product subject, also locate that product's source repo. Lock as `$PROJECT`.
+
+Try these default paths in order, pick the first that exists and looks like a code repo (has `package.json`, `composer.json`, `Cargo.toml`, or `.git/`):
+
+| Product           | Candidate paths                                                                                  |
+|-------------------|--------------------------------------------------------------------------------------------------|
+| Spectra           | `~/Akira/Foundation/spectra` · `~/Akira/Foundation/spectra-app` · `~/Akira/Foundation/spectra-landing-page` |
+| Unified Dev       | `~/Akira/Foundation/unified-dev` · `~/Akira/akira-io` · `~/Akira/Foundation/akira-io.com`        |
+| NoxDireit         | `~/Akira/Foundation/noxdireit` · `~/Akira/Foundation/nox` · `~/Akira/Foundation/legal-cv`        |
+| Akira Debugger    | `~/Akira/Foundation/laravel-debugger` · `~/Akira/Foundation/akira-debugger`                      |
+| Akira Packages    | `~/Akira/Foundation/akira-packages` · `~/Akira/akira-io` · `~/Akira/Foundation/packages`         |
+
+If none exist, ask the user:
+
+> The post is about <PRODUCT>. Where is its source repo? I need the path so I can ground code samples in real files instead of inventing them.
+
+Validate the answer points to an actual repo. If the user does not have a checkout available, tell them: "Either give me a path, or pick evidence items that do not require code (numbers, anecdotes, quotes, comparisons). Do not let me invent code."
+
+### 0.3 Project reconnaissance (when `$PROJECT` is locked)
+
+Before drafting, scan the product repo. Goal: build a small mental model of file layout, key entry points, and any names the post will reference. Do NOT exhaustively read every file. Do this once, cheaply.
+
+Run, in order:
+
+1. `ls $PROJECT` — top-level structure.
+2. `cat $PROJECT/README.md` if present — first 80 lines.
+3. `cat $PROJECT/package.json` or `composer.json` — name, scripts, key deps.
+4. `ls $PROJECT/src/` (or `app/`, `routes/`, `packages/`) — directory map.
+5. For each evidence item the user named in Phase 1.3 that references code:
+   - Resolve the actual file path from `$PROJECT`.
+   - Read the relevant function or block. Lift the **real** code, not a paraphrase.
+   - Note the file path with line numbers so the post can cite `src/.../File.php:42`.
+6. If the user named a "first commit" or "first line of code" without a path:
+   ```bash
+   cd $PROJECT && git log --reverse --pretty=format:"%h %ad %s" --date=short | head -5
+   git show --stat <first-hash>
+   ```
+   Use the actual hash, date, and changed files.
+
+What this recon produces:
+
+- A short evidence dossier (in your working memory, not written to disk) that maps each Phase 1.3 evidence item to a concrete file, function, hash, or number from `$PROJECT`.
+- A list of `TODO:` markers if a referenced item cannot be resolved. Resolve TODOs with the user before drafting; do not paper over them in prose.
+
+What this recon never does:
+
+- Never invents code that is not in the repo.
+- Never paraphrases a function in a way that makes it look real when it is not.
+- Never picks a "representative example" file that the user did not approve.
+- Never edits or commits anything in `$PROJECT`. Read-only.
 
 ## Phase 1 — Brief intake
 
@@ -303,6 +357,17 @@ If the user wants embedded interactive bits, the project ships:
 - Code blocks (Shiki, dark theme) via fenced ```lang.
 - Blockquotes for short claims.
 - Standard markdown. No custom MDX components yet — propose adding `<Callout>`, `<Note>`, `<Compare>` only if the post genuinely needs them, and tell the user to confirm.
+
+### Grounded code samples
+
+Every code block in a product post must come from the Phase 0.3 recon of `$PROJECT`. Rules:
+
+- Cite the exact file path on its own line above the code block, e.g. `// app/Inspector/Routes/Discoverer.php`.
+- Paste the real code. Trim by removing unrelated lines, but **never** rename functions, classes, or variables to make the code look cleaner than it is.
+- If the real code is too long for a slide, quote 3–8 lines that carry the argument. Show the truncation honestly with `// …`.
+- If the post needs a code example that does not yet exist in `$PROJECT`, stop and tell the user. Either the user writes the code first, or the post drops that section. Do not synthesise plausible-looking code.
+
+When a commit hash, PR number, issue number, or release tag is referenced, take it from `git log` in `$PROJECT`, not from memory.
 
 ## Phase 4 — Voice review (delegated)
 
@@ -776,8 +841,10 @@ Do not run any translation through a generic LLM-translate. The user has explici
 
 - Never writes a post without intake.
 - Never invents anecdotes, customer stories, or benchmarks.
+- Never invents code, file paths, function names, commit hashes, PR numbers, or release tags. If the post is product-specific, code must come from `$PROJECT` via Phase 0.3 recon. If a needed sample does not exist, stop.
+- Never edits, commits, or writes to `$PROJECT`. Read-only.
 - Never generates illustrative or decorative imagery from a prompt. The only image it produces is the deterministic IG template render (Phase 7). For inline diagrams or screenshots, it describes what is needed and asks the user to provide them.
-- Never commits to git.
+- Never commits to git (neither portfolio nor product repo).
 - Never ships a draft that contains banned phrases.
 - Never picks a clickbait headline. Headlines must be the claim of the post in plain language.
 - Never auto-translates. PT posts are written, not converted.
