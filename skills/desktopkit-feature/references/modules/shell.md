@@ -11,7 +11,12 @@ This is the package every Go desktop application reaches for when it has to wrap
 | `Candidates` | Builder that collects PATH names and explicit candidate file paths. |
 | `Candidates.WithName(name string) Candidates` | Adds an executable name to look up via PATH. |
 | `Candidates.WithCandidate(path string) Candidates` | Adds an explicit absolute path to try if PATH fails. |
+| `Candidates.WithCandidates(paths []string) Candidates` | Adds many explicit absolute paths. Empty entries are ignored. |
 | `(Candidates) Resolve() (ResolvedExecutable, error)` | Returns the first candidate that exists and is executable. |
+| `ListNpmGlobalBinDirs() []string` | Conventional directories where npm global packages install binaries. |
+| `ListUserLocalBinDirs() []string` | Conventional per-user bin directories (`~/.local/bin`, `~/bin`). |
+| `ListSystemBinDirs() []string` | Conventional system-wide bin directories per platform. |
+| `ListWindowsApplicationDirs(applicationName string) []string` | Conventional Windows install directories for a named application. |
 | `ResolvedExecutable` | The result of a successful resolution. |
 | `(ResolvedExecutable) AbsolutePath() string` | Absolute path to the binary. |
 | `(ResolvedExecutable) Source() ResolutionSource` | Where the binary was found (`SourcePath`, `SourceCandidate`). |
@@ -22,15 +27,27 @@ This is the package every Go desktop application reaches for when it has to wrap
 Resolving the `claude` CLI installed via npm, Homebrew, the official installer, or PATH:
 
 ```go
-import "github.com/akira-io/desktopkit/shell"
+import (
+    "github.com/akira-io/desktopkit/osinfo"
+    "github.com/akira-io/desktopkit/shell"
+)
 
-candidates := shell.NewCandidates().
-    WithName("claude").
-    WithName("claude.exe").
-    WithCandidate("/usr/local/bin/claude").
-    WithCandidate("/opt/homebrew/bin/claude")
+name := "claude" + osinfo.ExecutableExtension()
+binary := "claude" + osinfo.ExecutableExtension()
 
-resolved, err := candidates.Resolve()
+dirs := append(shell.ListNpmGlobalBinDirs(), shell.ListUserLocalBinDirs()...)
+dirs = append(dirs, shell.ListSystemBinDirs()...)
+dirs = append(dirs, shell.ListWindowsApplicationDirs("claude")...)
+
+candidates := []string{}
+for _, dir := range dirs {
+    candidates = append(candidates, filepath.Join(dir, binary))
+}
+
+resolved, err := shell.NewCandidates().
+    WithName(name).
+    WithCandidates(candidates).
+    Resolve()
 if err != nil {
     return err
 }
