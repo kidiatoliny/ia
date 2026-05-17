@@ -6,7 +6,12 @@ These 10 rules are non-negotiable. Apply to every language, every project, every
 
 - Every source file must be ≤ 300 lines (including blank lines, excluding generated/vendored).
 - At 301+, block. Surface a concrete split plan: which functions/types move to which new file, what to name them, how imports reshape.
-- Generated files (proto, GraphQL codegen, migrations, `wailsjs/`) are exempt — they live in their own directories and are auto-detected by gitattributes/path.
+- Generated and vendored files are exempt — they live in their own directories and are auto-detected. Exemptions include:
+  - Codegen output: `proto/gen/`, `__generated__/`, GraphQL codegen, `wailsjs/`, `prisma/generated/`, OpenAPI codegen.
+  - Migrations.
+  - Component-library scaffolds: shadcn/ui components in the path read from `components.json` `aliases.ui` (default `@/components/ui`). Treat anything under that directory as vendored — they are copied from upstream and customized minimally.
+  - Lockfiles, build artifacts, `node_modules/`, `vendor/`, `target/`, `dist/`, `build/`.
+  - Files marked `linguist-generated=true` in `.gitattributes`.
 - Test files share the cap. A `_test.go` over 300 lines is a smell that the production type has too many responsibilities.
 
 ## 2. Tests on every change

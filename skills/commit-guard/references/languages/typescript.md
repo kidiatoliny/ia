@@ -71,3 +71,14 @@ For modified `foo.ts`, expect `foo.test.ts` or `foo.spec.ts` change in the same 
 ## File length
 
 300-line cap. Component files frequently grow via inline subcomponents — split inline subcomponents into sibling files before the cap.
+
+## Exempt directories (auto-detected)
+
+Skip all rule checks on:
+
+- **shadcn/ui scaffolds** — read `components.json` at repo root. The `aliases.ui` field resolves to a path (default `@/components/ui`). Everything under that resolved path is vendored from shadcn; do not enforce file-length, comments policy, or naming on them. Surface as info only if the user explicitly invokes `/commit-guard` against that path.
+- **Codegen output** — `wailsjs/`, `__generated__/`, `*.gen.ts`, `*.generated.ts`, files with the header `/* eslint-disable */` followed by `// @generated`.
+- **Lockfiles** — `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`.
+- **Vite/Next build output** — `dist/`, `.next/`, `out/`, `build/`.
+
+When `components.json` is absent, default to `src/components/ui/**` if it exists, otherwise no shadcn exemption.
