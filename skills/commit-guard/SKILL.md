@@ -54,6 +54,27 @@ If a project file overrides a rule, the project wins. If user explicitly authori
 
 These rules are MANDATORY. They are not preferences. They are not skippable to "ship faster". They are not "noisy". They are the agreement.
 
+## Enforcement hook
+
+A `PreToolUse` hook in `~/.claude/settings.json` intercepts every Bash
+tool call matching `git commit`, `git push`, `gh pr create`, or
+`gh release create`. The hook blocks the call until a marker file at
+`$TMPDIR/commit-guard/ok` is present and fresh (< 5 minutes old).
+
+After the skill finishes its run and decides to allow the commit/push
+(either because everything passed or because the user explicitly
+authorized exceptions), it MUST touch the marker:
+
+```
+mkdir -p "${TMPDIR:-/tmp}/commit-guard"
+touch "${TMPDIR:-/tmp}/commit-guard/ok"
+```
+
+The hook consumes (removes) the marker after one successful pass-through,
+so each commit/push requires a fresh skill run. This is the enforcement
+mechanism — the rule is not "please remember to run", it is the harness
+blocking direct git commands until the skill says OK.
+
 ## Run order
 
 ```
@@ -73,6 +94,8 @@ These rules are MANDATORY. They are not preferences. They are not skippable to "
 13. Report                         — one consolidated violation table
 14. Decision gate                  — block if any rule fails; allow only on
                                      explicit user authorization for that change
+15. Unlock marker                  — on allow, touch $TMPDIR/commit-guard/ok
+                                     so the next git command passes the hook
 ```
 
 ## Pre-commit vs pre-push
