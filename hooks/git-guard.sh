@@ -14,6 +14,18 @@ if ! printf '%s' "$command" | grep -qE '(^|[^a-zA-Z])(git[[:space:]]+commit|git[
   exit 0
 fi
 
+cwd=$(printf '%s' "$input" | jq -r '.cwd // ""' 2>/dev/null || true)
+case "$cwd" in
+  "$HOME/.claude"|"$HOME/.claude/"*)
+    exit 0
+    ;;
+esac
+case "$command" in
+  *"cd $HOME/.claude"*|*"cd ~/.claude"*)
+    exit 0
+    ;;
+esac
+
 if [ -f "$MARKER" ]; then
   if mtime=$(stat -f %m "$MARKER" 2>/dev/null); then :
   else mtime=$(stat -c %Y "$MARKER" 2>/dev/null || echo 0); fi
