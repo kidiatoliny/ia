@@ -1,0 +1,13 @@
+=== 2026-05-18T19:27:03Z ===
+subject: chore(auto-sync): 10 file(s) [2026-05-18T19:27:03Z]
+[main b6f5736] chore(auto-sync): 10 file(s) [2026-05-18T19:27:03Z]
+ 10 files changed, 273 insertions(+), 97 deletions(-)
+ delete mode 100644 commands/github-issue-creator.md
+ create mode 100644 commands/issue-creator.md
+ create mode 100755 hooks/cg-authorize.sh
+ create mode 100755 hooks/claude-sync.sh
+ delete mode 100644 skills/github-issue-creator/agents/openai.yaml
+ delete mode 100755 skills/github-issue-creator/scripts/create_issue.sh
+To github.com:kidiatoliny/.claude.git
+   ebe80fc..b6f5736  main -> main
+pushed
