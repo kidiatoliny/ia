@@ -81,43 +81,67 @@ Run `clawpatch report` and capture stdout. Parse the markdown report into struct
 
 Map severities: `critical|high|medium|low` → priority label and Linear priority (Urgent | High | Medium | Low).
 
-## Step 7 — Linear sync preference
+## Step 7 — Linear sync preference + tracking model
 
-Before any issue creation, ask the user:
+GitHub issues always live in the **upstream repo** (where the code is). Linear issues live where the **team that does the work tracks effort** — and that is not always the same place. Before any issue creation, ask two questions:
+
+### 7a — Sync to Linear at all?
 
 ```
 sync findings to Linear too? (y/N)
-- y: create issue in both GitHub and Linear, linked
+- y: create Linear tracker(s), linked to GitHub
 - n: GitHub only
 ```
 
-If `n`: skip Linear entirely, proceed to Step 8 with only GitHub.
+If `n`: skip Linear entirely, proceed with only GitHub.
 
-If `y`: resolve Linear target before creating any issue.
+### 7b — Tracking model (only if Linear sync = yes)
 
-### Linear target resolution
+Ask which model fits the upstream repo:
+
+```
+Where should the Linear tracker live?
+  1) Library mode — Linear in the upstream project (e.g. "akira-io/laravel-sisp" → Linear project "laravel-sisp")
+     Use when the upstream repo has its own dedicated team/maintainers tracking work directly.
+  2) Consumer mode — Linear in the consumer product project (e.g. SISP findings → Linear project "nosferry.com")
+     Use when the upstream repo is a library/SDK with no dedicated team; the consuming product's team does the fix work.
+  3) Hybrid — primary tracker in upstream project, mirror trackers in consumer projects (blockedBy upstream)
+     Use when multiple consumers care and the upstream has its own maintainers.
+```
+
+Cache the answer in `~/.claude/projects/<cwd-slug>/memory/linear-mapping.md` under `model:`. Future runs honour the cached choice without asking, unless the user says "remap".
+
+### 7c — Linear target resolution
+
+Resolve the project(s) based on the chosen model:
+
+- **Library mode**: target = 1 project in the upstream team. Resolve via name match against the repo name.
+- **Consumer mode**: target = 1 project in a consumer team. **Always ask** the user which consumer project owns this work — never auto-pick. List teams + projects so the user can choose. Cache the choice.
+- **Hybrid**: target = 1 upstream project + 1..N consumer projects. Resolve upstream as in Library mode, then prompt for consumer projects as in Consumer mode.
+
+Resolution algorithm (per target):
 
 1. Get GitHub repo name: `gh repo view --json name -q .name`.
 2. Query Linear teams: `mcp__linear__list_teams`.
 3. For each team, list projects: `mcp__linear__list_projects`.
 4. Match strategy (in order):
-   - Project name exact match to repo name (e.g. `nosferry.com` ↔ `nosferry.com`)
-   - Project name kebab/space-normalized match (`nosferry-core` ↔ `nosferry core`)
-   - User-supplied alias from a prior run (memory file `linear-mapping.md` if present)
+   - Cached mapping from `linear-mapping.md` (model + project per repo)
+   - Project name exact match to repo name (Library mode only)
+   - Project name kebab/space-normalized match
 5. If single match found → confirm with user:
    ```
    Linear project: <Team>/<Project>. confirm? (Y/n)
    ```
 6. If multiple candidates → present numbered menu, ask user to pick.
-7. If zero matches → offer two options:
+7. If zero matches → offer:
    ```
-   No Linear project matches "<repo>". options:
+   No Linear project matches. options:
      1) map to an existing project (list)
-     2) create new project "<repo>" in team <T>
+     2) create new project "<name>" in team <T>
      3) skip Linear, GitHub only
    ```
-   - Option 1: list all projects, user picks; save mapping to `~/.claude/projects/<cwd-slug>/memory/linear-mapping.md` so future runs auto-resolve.
-   - Option 2: `mcp__linear__save_project` with name=repo, team=picked, then use it.
+   - Option 1: list all projects, user picks; save mapping.
+   - Option 2: `mcp__linear__save_project` with name + team, then use it. **Confirm before creating** — never create projects without explicit user OK, especially in a team you don't already own findings in.
    - Option 3: fall back to GitHub-only mode.
 
 ## Step 8 — Prepare labels + milestone before any issue creation
@@ -212,30 +236,19 @@ For each parsed finding:
 
 Rate-limit awareness: if creating >20 issues, pause briefly between calls.
 
-## Step 10 — Downstream consumer tracking (cross-team dependencies)
+## Step 10 — Downstream consumer tracking (Hybrid mode only)
 
-After the upstream issues exist, ask the user whether any **other Linear teams** own projects that consume this code (e.g. a frontend app that depends on a SISP SDK, or a mobile app that depends on a payments package).
+This step only runs when Step 7b selected **Hybrid** mode. In **Library** mode, the upstream project already owns the work and no consumer mirrors are needed. In **Consumer** mode, the Linear tracker is already in the consumer project, so no second tracker is needed either.
 
-Prompt verbatim:
+For Hybrid: after the upstream Linear trackers exist, mirror the relevant ones into each consumer project picked in Step 7c.
 
-```
-Do other Linear teams have projects that depend on this code? (y/N)
-- y: I'll mirror selected findings as tracking issues in those teams, linked with `blockedBy` to the upstream AKIRA-N.
-- n: skip.
-```
+Reuse the consumer project(s) the user already picked in Step 7c — don't re-prompt. Then:
 
-If `y`:
-
-1. **Discover consumer teams/projects.**
-   - `mcp__linear__list_teams` (exclude the upstream team already used).
-   - For each candidate team the user names, list projects via `mcp__linear__list_projects` (filter by team).
-   - Ask the user to pick the consumer project(s) — never guess. If unclear, **ask** which projects depend on the upstream package. Persist the mapping in `~/.claude/projects/<cwd-slug>/memory/linear-mapping.md` under a `downstream:` section so future runs can pre-populate the choice.
-
-2. **Pick which findings to mirror.**
+1. **Pick which findings to mirror.**
    - Default selection: all `bug` category findings and any finding with `triage: confirmed-bug`. Test-gaps and build-release nits do **not** propagate downstream by default.
    - Show the default list and let the user add/remove. If the user is unsure which findings affect the consumer, **ask** rather than guessing — most consumers only care about behavioural changes (bugs, breaking-API category, security-related).
 
-3. **Create tracking issues in each consumer team/project.**
+2. **Create tracking issues in each consumer team/project.**
    - One tracking issue per (consumer-project, upstream-finding) pair.
    - `mcp__linear__save_issue` with:
      - `team`: consumer team
@@ -249,14 +262,14 @@ If `y`:
      - `links: [{url: <upstream-gh-url>, title: "Upstream GH"}, {url: <upstream-linear-url>, title: "Upstream Linear"}]`
    - Do **not** assign these to the upstream milestone or the upstream cycle — the consumer team has its own milestone/cycle and the user picks (or skips) those separately. Ask the user whether to set a `dueDate` keyed off the upstream milestone's target date.
 
-4. **Optionally create / extend a Linear Initiative for cross-team rollup.**
+3. **Optionally create / extend a Linear Initiative for cross-team rollup.**
    - Ask: `Group upstream + consumer projects under a Linear Initiative for cross-team visibility? (y/N)`
    - If `y`: `mcp__linear__list_initiatives` to find a matching one (e.g. an existing "Payments platform" initiative). If none matches, ask for an initiative name + description and create with `mcp__linear__save_initiative`, then attach both upstream and consumer projects via `mcp__linear__save_project` with `addInitiatives`.
 
-5. **Backlink upstream → downstream.**
+4. **Backlink upstream → downstream.**
    - For each upstream Linear issue that got a downstream tracker, append the tracker URL to the upstream issue via `save_issue` with `links: [{url: <downstream-url>, title: "Downstream: <team>/<project>"}]`. This makes the dependency visible from both sides.
 
-If `n` or no other teams are relevant: skip silently and proceed to the final report.
+If Library or Consumer mode was selected in Step 7b: skip this step entirely.
 
 ## Step 11 — Final report
 
@@ -293,6 +306,9 @@ The `downstream` column is omitted when Step 10 was skipped.
 - Always ignore `/.clawpatch/` via `.gitignore` after init. The directory holds local audit state and reports and must never be committed.
 - Cross-team dependencies (Step 10): never auto-create issues in another team's project without explicit user confirmation of (a) consumer team, (b) consumer project, (c) which findings to mirror. Cycles and milestones do NOT cross team boundaries — leave the downstream cycle/milestone for the consumer team to set. Always link with `blockedBy` upstream and backlink the upstream issue with the downstream URL so both sides see the dependency.
 - When uncertain about downstream mapping, finding selection, or naming, **ask the user** rather than guessing. Better to ask once and cache the answer in `linear-mapping.md` than to silently create wrong-team issues.
+- Tracking model is per-repo, not per-finding. Decide once (Step 7b: Library / Consumer / Hybrid), cache in `linear-mapping.md`, and apply uniformly to every finding in the run. GitHub issues always live in the upstream repo regardless of model — Linear placement is what changes.
+- Consumer mode: the Linear tracker is the canonical work item; there is no separate "upstream" Linear issue. The GitHub issue in the upstream repo is the code-change record; the consumer Linear issue is the effort/scheduling record. Link them via Linear `links` (to the GH URL) and a `gh issue comment` (with the Linear URL).
+- Library mode is appropriate only when the upstream repo has its own dedicated team in Linear that schedules and owns the work. If the repo is a library/SDK without dedicated maintainers (consumers do the fixes), default the user toward Consumer or Hybrid mode.
 - If the user says "skip issues" or "report only", stop after Step 6 and print the report instead of creating issues.
 - If the report has zero findings, print "clawpatch: no findings" and exit cleanly — do not create empty issues.
 
