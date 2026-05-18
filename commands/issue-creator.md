@@ -15,7 +15,18 @@ Creates a GitHub issue **and** a matching Linear issue, then links them both way
 
 3. **Resolve targets.**
    - **GitHub repo:** if not explicitly given, infer from `gh repo view --json nameWithOwner -q .nameWithOwner` in the current repo. Ask only if resolution fails.
-   - **Linear team:** if not given, call `mcp__linear__list_teams` and pick the obvious match (single team → use it; multiple → ask which). Cache the team key for the session.
+   - **Linear team:** call `mcp__linear__list_teams`. If exactly one team exists, use it. Otherwise ask which team. Cache for the session.
+   - **Linear project (always ask, never auto-pick).** Call `mcp__linear__list_projects` filtered by the chosen team. Show a numbered list and ask the user to pick the project this work will be tracked in. **Do not auto-match by repo name** — the upstream repo and the project that tracks the work are often different (e.g. work on `laravel-sisp` may be tracked in `nosferry.com`, the consumer product). If a previous session cached a choice for this repo, show it as the default but still require Y/n confirmation.
+   - **Project-level dependencies (optional).** Ask:
+     ```
+     Does this work depend on changes in another Linear project? (y/N)
+     ```
+     If `y`: list projects across all teams (recents first), let the user pick one or more. Capture the chosen project URLs — no issue IDs needed.
+   - **Issue-level blocker (optional, default skip).** Ask:
+     ```
+     Know a specific upstream issue that blocks this? (y/N — default N)
+     ```
+     Only if `y`: prompt for the Linear issue ID (e.g. `AKIRA-104`) or GitHub URL. Skip otherwise — project-level dependency above is usually enough.
 
 4. **Build the title.** Short, explicit, English. Imperative for tasks/features ("Add X"), descriptive for bugs ("Cart total wrong when …").
 
@@ -34,6 +45,10 @@ Creates a GitHub issue **and** a matching Linear issue, then links them both way
 - [ ] <criterion 1>
 - [ ] <criterion 2>
 
+## Depends on
+- [<Project name>](<project url>)
+<!-- Omit the section entirely if no project-level dependencies were declared in step 3. -->
+
 ## Notes
 <optional implementation notes>
 ```
@@ -49,8 +64,10 @@ Creates a GitHub issue **and** a matching Linear issue, then links them both way
    - Capture the returned `html_url` and `number`.
 
 8. **Create the Linear issue.**
-   - Use `mcp__linear__save_issue` (or `mcp__linear__create_issue` if that's what the connected server exposes) with: `team`, `title`, `description`, and a label matching the type (`Bug`, `Feature`, `Task`, `Documentation` — create via `mcp__linear__create_issue_label` if missing, only when the user wants labels mirrored).
+   - Use `mcp__linear__save_issue` with: `team` (from step 3), `project` (from step 3 — the project the user explicitly picked), `title`, `description`, and a label matching the type (`Bug`, `Feature`, `Task`, `Documentation` — create via `mcp__linear__create_issue_label` if missing, only when the user wants labels mirrored).
    - **Append the GitHub URL to the Linear description** under a `## Links` section so the connection is visible in Linear's UI even without attachments.
+   - **If project-level dependencies were declared in step 3**, the `## Depends on` section in the body already lists them — no extra Linear field needed (Linear has no project-level dependency relation; the description carries the signal).
+   - **If an issue-level blocker was named in step 3**, also pass `blockedBy: ["<upstream-id>"]` to `save_issue` so Linear renders the cross-issue edge.
    - Capture the returned Linear issue URL and identifier (e.g., `ENG-123`).
    - If the Linear MCP is not connected, follow the connection steps from the `/linear` command, then retry. If the user declines to connect, skip Linear and warn.
 
@@ -74,3 +91,5 @@ Creates a GitHub issue **and** a matching Linear issue, then links them both way
 - Avoid vague language ("improve", "fix things"). Be specific.
 - Do not create duplicate GitHub + Linear issues if either side already exists for the same request — search first (`gh issue list --search …`, `mcp__linear__list_issues` with a title filter) and offer to link instead.
 - Never expose tokens or secrets in issue bodies.
+- Never auto-pick the Linear project from the repo name — always ask. Upstream code repo and consumer tracking project are often in different teams/projects. Cached defaults are fine; silent picks are not.
+- Default to project-level dependencies (free-text URLs in `## Depends on`) over issue-level `blockedBy`. Only request a specific blocker ID when the user volunteers one.
