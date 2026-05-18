@@ -49,6 +49,8 @@ If not initialized: run `clawpatch init`, then `clawpatch map`.
 
 If initialized but no map exists yet (status reports zero features), run `clawpatch map`.
 
+After init (or before the first review on an already-initialised project), ensure `/.clawpatch/` is ignored by git. If a `.gitignore` exists and lacks `/.clawpatch/`, append it. If no `.gitignore` exists yet, create one with the entry. Never commit the `.clawpatch/` directory — it holds local audit artefacts (reports, state, locks).
+
 ## Step 4 — Pick batch size
 
 Default `--jobs 10`. Ask the user to confirm or pick a different value:
@@ -148,11 +150,14 @@ Target date: pick a realistic horizon — default 4–6 weeks out, or align with
 - GitHub: `gh api -X POST repos/<owner>/<repo>/milestones -f title=… -f description=… -f due_on=…Z`. Capture the milestone number.
 - Linear: `mcp__linear__save_milestone` with `project`, `name`, `description`, `targetDate`. Capture the milestone ID/name.
 
-### 8c — Linear cycles (if enabled)
+### 8c — Linear cycles
 
 `mcp__linear__list_cycles` for the target team:
-- If cycles exist (current/next), assign medium-severity issues to `current` and low-severity to `next` (configurable; ask the user to confirm).
-- If the team has no cycles, surface a note to the user — Linear MCP has no `save_cycle`; the user must enable cycles in Linear's team settings. Proceed without cycle assignment.
+- If cycles exist, assign issues by severity:
+  - `critical` / `high` / `medium` → current cycle (or earliest upcoming if none is current yet)
+  - `low` → next cycle
+- If the team has no cycles enabled, surface a note to the user — Linear MCP has no `save_cycle`; the user must enable cycles in Linear's team settings. Then either retry the cycle step or proceed without it (user's choice).
+- If the team uses Triage, leave the issue status default (Linear places new issues into Triage automatically when enabled). Do not force a status override.
 
 ## Step 9 — Create issues
 
@@ -237,6 +242,7 @@ clawpatch: <n> findings → issues created
 - If the project has a clear next release version, the milestone name leads with that version (`vX.Y.Z — <scope>`); otherwise use a descriptive scope name with a date qualifier.
 - Always set `dueDate` on Linear issues (tier by severity inside the milestone window) and pass `--milestone` to `gh issue create`. Never leave the target date empty.
 - If the Linear team has cycles enabled, assign issues to current/next by severity. If cycles are disabled, surface this and proceed without — never silently skip without telling the user.
+- Always ignore `/.clawpatch/` via `.gitignore` after init. The directory holds local audit state and reports and must never be committed.
 - If the user says "skip issues" or "report only", stop after Step 6 and print the report instead of creating issues.
 - If the report has zero findings, print "clawpatch: no findings" and exit cleanly — do not create empty issues.
 
