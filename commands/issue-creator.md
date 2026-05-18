@@ -53,18 +53,62 @@ Creates a GitHub issue **and** a matching Linear issue, then links them both way
 <optional implementation notes>
 ```
 
+5b. **Resolve milestone (GitHub + Linear, best-fit-or-create).**
+
+   Every issue MUST land on a milestone on both sides. Resolution order:
+
+   1. **List open milestones.**
+      - GitHub: `gh api repos/{owner}/{repo}/milestones?state=open`
+      - Linear: `mcp__linear__list_milestones` filtered by the chosen project.
+   2. **Evaluate best-fit** by scoring each candidate against the issue:
+      - Title/scope keyword overlap (e.g. "auth", "billing", "payments", "perf") — strongest signal.
+      - Release-version alignment when the issue is a bug/feature heading into a next release (e.g. `vX.Y.Z` milestone matches a bug that blocks that release per `package.json`/`composer.json`/`CHANGELOG.md`).
+      - Type compatibility (a `documentation` issue does not belong on a `vX.Y.Z — Bugfix` milestone unless docs are explicitly in scope per the milestone description).
+      - Due-date sanity (do not bind a new feature to a milestone whose target date is < 7 days away unless the user insists).
+   3. **Pick or create:**
+      - If exactly one strong match (score clearly above others) → propose it: `Milestone: <name>. confirm? (Y/n)`.
+      - If multiple plausible matches → numbered menu, user picks.
+      - If zero plausible matches → propose creating a new milestone, naming it per the same rule as `/clawpatch` Step 8b:
+        - Next-release-bound issue → `vX.Y.Z — <short scope phrase>`.
+        - Otherwise → `<scope phrase> (<YYYY-Qn or YYYY-MM>)`.
+        Description (multi-paragraph) names the scope, why it matters, and exit criteria. Confirm with the user before creating; never auto-create a milestone silently.
+      - GitHub create: `gh api -X POST repos/{owner}/{repo}/milestones -f title=… -f description=… -f due_on=…Z`.
+      - Linear create: `mcp__linear__save_milestone` with `project`, `name`, `description`, `targetDate`.
+   4. **Mirror across sides.** Whatever milestone the issue lands on in GitHub must have an equivalently-named milestone on the Linear project (and vice versa). If only one side has the milestone, create the missing side before opening the issue. Cache the GH↔Linear milestone pair in `~/.claude/projects/<cwd-slug>/memory/linear-mapping.md` under `milestones:` so future runs reuse it without re-prompting.
+
 6. **Build labels.**
    - Always one type label: `type:bug`, `type:feature`, `type:task`, or `type:documentation`.
    - Preserve any repo-specific labels the user named.
    - Priority labels only when explicitly requested or clearly implied.
 
+6b. **Duplicate guard (GitHub + Linear) — mandatory before any create.**
+
+    Never open a second issue for a request that is already tracked. Check both sides:
+
+    - GitHub: `gh issue list --repo {owner}/{repo} --state all --search "<keywords from title>" --json number,title,state,url,milestone` (include closed — surfacing a recently-closed regression matters). Also try a search by any error string or file path mentioned in the body.
+    - Linear: `mcp__linear__list_issues` filtered by `team` + `project` with a `title` substring; widen the query to `state in (Triage, Backlog, Todo, In Progress, In Review)` first, then include `Done` if zero matches.
+
+    For each candidate, present to the user (max 5, ranked by title overlap):
+    ```
+    Possible duplicate(s):
+      [GH #123] <title> (open, milestone: vX.Y.Z)
+      [LIN ENG-456] <title> (In Progress)
+    options:
+      1) link to <#123 / ENG-456> instead of creating new
+      2) create new anyway (explain why)
+      3) cancel
+    ```
+    If the user picks (1), stop the create flow and just cross-link/comment on the existing issue. If (2), proceed but include a `Related:` line in the body pointing at the prior issue. If (3), abort.
+
 7. **Create the GitHub issue first.**
-   - `gh api repos/{owner}/{repo}/issues --method POST --raw-field title=… --raw-field body=… --field labels=[…]`
+   - `gh api repos/{owner}/{repo}/issues --method POST --raw-field title=… --raw-field body=… --field labels=[…] --field milestone=<number>`
+   - Always pass `milestone` (resolved in Step 5b). Never open without a milestone.
    - If a label does not exist in the repo, retry with the valid subset and mention which were skipped.
    - Capture the returned `html_url` and `number`.
 
 8. **Create the Linear issue.**
-   - Use `mcp__linear__save_issue` with: `team` (from step 3), `project` (from step 3 — the project the user explicitly picked), `title`, `description`, and a label matching the type (`Bug`, `Feature`, `Task`, `Documentation` — create via `mcp__linear__create_issue_label` if missing, only when the user wants labels mirrored).
+   - Use `mcp__linear__save_issue` with: `team` (from step 3), `project` (from step 3 — the project the user explicitly picked), `title`, `description`, `milestone` (from step 5b — the Linear-side milestone name), and a label matching the type (`Bug`, `Feature`, `Task`, `Documentation` — create via `mcp__linear__create_issue_label` if missing, only when the user wants labels mirrored).
+   - `milestone` is mandatory — never open a Linear issue outside a project milestone.
    - **Append the GitHub URL to the Linear description** under a `## Links` section so the connection is visible in Linear's UI even without attachments.
    - **If project-level dependencies were declared in step 3**, the `## Depends on` section in the body already lists them — no extra Linear field needed (Linear has no project-level dependency relation; the description carries the signal).
    - **If an issue-level blocker was named in step 3**, also pass `blockedBy: ["<upstream-id>"]` to `save_issue` so Linear renders the cross-issue edge.
@@ -89,7 +133,8 @@ Creates a GitHub issue **and** a matching Linear issue, then links them both way
 - One issue per request unless the user asks for separate tracking.
 - Acceptance criteria are mandatory — never omit.
 - Avoid vague language ("improve", "fix things"). Be specific.
-- Do not create duplicate GitHub + Linear issues if either side already exists for the same request — search first (`gh issue list --search …`, `mcp__linear__list_issues` with a title filter) and offer to link instead.
+- Do not create duplicate GitHub + Linear issues if either side already exists for the same request — Step 6b duplicate guard is mandatory, never bypassed. Search both sides (`gh issue list --search …` including closed; `mcp__linear__list_issues` with title filter, widening to Done if no open match) and offer to link before creating new.
+- Every issue must land on a milestone on both sides. Reuse existing milestones whenever scope/version aligns; only create a new milestone with explicit user confirmation. GH and Linear milestones must be mirrored (same name, same target date) and cached in `linear-mapping.md`.
 - Never expose tokens or secrets in issue bodies.
 - Never auto-pick the Linear project from the repo name — always ask. Upstream code repo and consumer tracking project are often in different teams/projects. Cached defaults are fine; silent picks are not.
 - Default to project-level dependencies (free-text URLs in `## Depends on`) over issue-level `blockedBy`. Only request a specific blocker ID when the user volunteers one.

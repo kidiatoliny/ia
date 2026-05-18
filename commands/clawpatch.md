@@ -158,7 +158,25 @@ Category labels: take the exact `category:` strings from the report (`test-gap`,
 
 ### 8b — Milestone (GitHub + Linear project milestone)
 
-Always create a single milestone for the run, with a **human-readable title that names the actual scope** — never `Milestone 1`, `Sprint 2`, `Findings`, etc.
+Resolve a single milestone for the run. **Reuse before creating** — only open a new milestone when no existing open milestone fits the scope of this report.
+
+**Best-fit search (run first):**
+
+1. `gh api repos/<owner>/<repo>/milestones?state=open` and `mcp__linear__list_milestones` (filtered by the resolved Linear project).
+2. Score each open milestone against the report:
+   - Scope keyword overlap between milestone title/description and the dominant categories in the report (`bug`, `test-gap`, `build-release`, `maintainability`, etc.).
+   - Release-version alignment: if `package.json` / `composer.json` / `CHANGELOG.md` indicates a next release `vX.Y.Z` and an open milestone targets that version, treat it as a strong match unless its description explicitly excludes audit findings.
+   - Capacity sanity: skip milestones whose `due_on`/`targetDate` is < 7 days away or that are >80% complete — don't pile new findings onto a release that's about to ship.
+3. Decision tree:
+   - One strong match on both sides (GH + Linear) → confirm with the user (`Reuse milestone "<name>"? (Y/n)`) and use it.
+   - Match exists on only one side → confirm reuse on the matching side, then create the missing side with the **same name + description + target date** to keep the pair mirrored.
+   - Multiple plausible matches → numbered menu, user picks.
+   - No plausible match → fall through to "Create new" below.
+4. Cache the GH↔Linear milestone pair under `milestones:` in `~/.claude/projects/<cwd-slug>/memory/linear-mapping.md`. Future runs against the same release scope reuse the cached pair without re-prompting.
+
+**Create new (only when best-fit yielded nothing):**
+
+Always create with a **human-readable title that names the actual scope** — never `Milestone 1`, `Sprint 2`, `Findings`, etc.
 
 Naming rule:
 - If the package has a current version in `package.json` / `composer.json` / `CHANGELOG.md` and the findings would naturally bundle into the next release, name the milestone for that release: `vX.Y.Z — <short scope phrase>` (e.g. `v0.7.0 — Payment correctness and test reliability hardening`).
@@ -183,9 +201,30 @@ Target date: pick a realistic horizon — default 4–6 weeks out, or align with
 - If the team has no cycles enabled, surface a note to the user — Linear MCP has no `save_cycle`; the user must enable cycles in Linear's team settings. Then either retry the cycle step or proceed without it (user's choice).
 - If the team uses Triage, leave the issue status default (Linear places new issues into Triage automatically when enabled). Do not force a status override.
 
+## Step 8d — Duplicate guard (mandatory before any issue create)
+
+Clawpatch reports often re-surface findings that already have open trackers from a prior run, an unrelated PR review, or a manually-filed bug. Never let those create duplicates.
+
+For each parsed finding, before opening a new issue:
+
+1. **GitHub search.**
+   ```
+   gh issue list --repo <owner>/<repo> --state all \
+     --search "<finding-title-keywords> in:title,body" \
+     --json number,title,state,url,milestone,labels
+   ```
+   - Include `state=all` — closed issues that match a re-occurring finding should be re-opened with a comment, not duplicated.
+   - Also search by any file path / function name surfaced in the evidence block — those signals dedup better than fuzzy title overlap.
+2. **Linear search.** `mcp__linear__list_issues` filtered by `team` + `project` with a title substring. Widen to closed states (`Done`, `Canceled`) only if the open-state search yields nothing.
+3. **Per-finding decision:**
+   - **Match found (open):** skip create, add a `gh issue comment` (or Linear comment via `mcp__linear__save_comment`) noting "Re-surfaced in clawpatch run <YYYY-MM-DD>" and attach the existing issue to the resolved milestone if it's not already there. Record as `skipped-duplicate` in the final report table.
+   - **Match found (closed) and finding is identical:** re-open via `gh issue reopen <num>` (and move Linear state back via `save_issue`), comment with the new evidence, and re-attach to the run's milestone.
+   - **No match:** proceed to Step 9 and create new.
+4. Surface the dedup decisions inline as they happen so the user can override before any creates fire.
+
 ## Step 9 — Create issues
 
-For each parsed finding:
+For each parsed finding (that survived the Step 8d dedup pass):
 
 1. **Create GitHub issue first** (always, regardless of Linear choice):
 
@@ -276,13 +315,16 @@ If Library or Consumer mode was selected in Step 7b: skip this step entirely.
 Print a single table summarizing every issue created. Linear column omitted when sync was off.
 
 ```
-clawpatch: <n> findings → issues created
-| # | severity | title | github | linear | downstream |
-|---|----------|-------|--------|--------|------------|
-| 1 | high     | ...   | #123   | NF-456 | FERRY-12, FERRY-13 |
-| 2 | medium   | ...   | #124   | NF-457 | — |
+clawpatch: <n> findings → <created> new, <skipped> duplicates, <reopened> re-opened
+| # | severity | title | status         | github | linear | downstream |
+|---|----------|-------|----------------|--------|--------|------------|
+| 1 | high     | ...   | created        | #123   | NF-456 | FERRY-12   |
+| 2 | medium   | ...   | dup-skipped    | #99    | NF-401 | —          |
+| 3 | low      | ...   | reopened       | #57    | NF-310 | —          |
 ...
 ```
+
+Always include the `status` column so the user can see which findings produced new tickets vs. mapped onto existing ones.
 
 The `downstream` column is omitted when Step 10 was skipped.
 
@@ -299,7 +341,9 @@ The `downstream` column is omitted when Step 10 was skipped.
 - Never append a `Generated by clawpatch.` footer to issue bodies.
 - Always set `assignee: "me"` on Linear issues so they land on the invoking user's plate.
 - Always create labels (GH + Linear) before opening issues if they don't exist. Never silently skip an unknown label — opening with a missing label drops the label.
-- Always create a milestone (GH + Linear project milestone) and attach every run's issues to it. Milestone name must describe the actual scope (release version or descriptive phrase) — never `Milestone 1`, `Sprint N`, or other generic placeholders. Include a multi-paragraph description summarising scope, motivation, and exit criteria.
+- Reuse before creating. Step 8b must search open GH milestones and Linear project milestones for a best-fit (scope keywords, release-version alignment, capacity sanity) and reuse with user confirmation before opening a new one. Only create a new milestone when no open milestone fits; cache the GH↔Linear pair in `linear-mapping.md` so subsequent runs converge on the same target.
+- Always attach every run's issues to a milestone on both sides (GH + Linear project milestone). When creating a new milestone, the name must describe the actual scope (release version or descriptive phrase) — never `Milestone 1`, `Sprint N`, or other generic placeholders. Include a multi-paragraph description summarising scope, motivation, and exit criteria.
+- Step 8d duplicate guard is mandatory and never bypassed. Every finding is searched against existing GH + Linear issues (open and closed) before any create. Open matches → comment + re-milestone, no new issue. Closed identical matches → re-open + comment. Only no-match findings reach Step 9.
 - If the project has a clear next release version, the milestone name leads with that version (`vX.Y.Z — <scope>`); otherwise use a descriptive scope name with a date qualifier.
 - Always set `dueDate` on Linear issues (tier by severity inside the milestone window) and pass `--milestone` to `gh issue create`. Never leave the target date empty.
 - If the Linear team has cycles enabled, assign issues to current/next by severity. If cycles are disabled, surface this and proceed without — never silently skip without telling the user.
