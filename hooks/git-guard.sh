@@ -3,12 +3,36 @@ set -euo pipefail
 
 MARKER_DIR="${TMPDIR:-/tmp}/commit-guard"
 MARKER="$MARKER_DIR/ok"
+PENDING="$MARKER_DIR/pending"
 TTL=300
 
 mkdir -p "$MARKER_DIR"
 
 input=$(cat)
 command=$(printf '%s' "$input" | jq -r '.tool_input.command // ""' 2>/dev/null || true)
+
+if [ -f "$PENDING" ]; then
+  if printf '%s' "$command" | grep -qE "(touch|tee|cp|mv|ln)[[:space:]]+[^|;&]*${MARKER}\b"; then
+    cat >&2 <<EOF
+BLOCKED by commit-guard hook: $command
+
+Pending commit-guard authorization exists ($PENDING). The assistant
+cannot create the ok marker by itself. Wait for the user to reply with
+the exact authorization phrase printed by the skill.
+EOF
+    exit 2
+  fi
+  if printf '%s' "$command" | grep -qE "(>|>>)[[:space:]]*${MARKER}\b"; then
+    cat >&2 <<EOF
+BLOCKED by commit-guard hook: $command
+
+Pending commit-guard authorization exists ($PENDING). The assistant
+cannot create the ok marker by itself via redirection. Wait for the
+user to reply with the exact authorization phrase.
+EOF
+    exit 2
+  fi
+fi
 
 if ! printf '%s' "$command" | grep -qE '(^|[^a-zA-Z])(git[[:space:]]+commit|git[[:space:]]+push|gh[[:space:]]+pr[[:space:]]+create|gh[[:space:]]+release[[:space:]]+create)([^a-zA-Z]|$)'; then
   exit 0
@@ -114,7 +138,16 @@ EOF
   exit 2
 fi
 
-if [ "$is_push" = "true" ] && [ -n "$cwd" ] && [ -f "$cwd/composer.json" ]; then
+if [ "$is_push" = "true" ]; then
+  target_dir="$cwd"
+  cd_target=$(printf '%s' "$command" | sed -nE 's/.*[[:space:]]cd[[:space:]]+("?)([^"&|;]+)\1.*/\2/p' | head -n1 | sed 's/[[:space:]]*$//')
+  if [ -n "$cd_target" ] && [ -d "$cd_target" ]; then
+    target_dir="$cd_target"
+  fi
+fi
+
+if [ "$is_push" = "true" ] && [ -n "$target_dir" ] && [ -f "$target_dir/composer.json" ]; then
+  cwd="$target_dir"
   has_test_script=$(jq -r '.scripts.test // empty' "$cwd/composer.json" 2>/dev/null || true)
   if [ -n "$has_test_script" ]; then
     is_laravel=false

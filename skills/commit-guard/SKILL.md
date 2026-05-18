@@ -100,9 +100,64 @@ blocking direct git commands until the skill says OK.
 13. Report                         — one consolidated violation table
 14. Decision gate                  — block if any rule fails; allow only on
                                      explicit user authorization for that change
-15. Unlock marker                  — on allow, touch $TMPDIR/commit-guard/ok
-                                     so the next git command passes the hook
+15. Unlock marker                  — see "Marker unlock protocol" below
 ```
+
+## Marker unlock protocol (MANDATORY)
+
+The assistant MUST NOT create `$TMPDIR/commit-guard/ok` by itself when any
+violation requires authorization. The hook blocks direct `touch`,
+redirection, or copy of the ok marker while a `pending` file exists.
+
+Two paths:
+
+### Path A — clean run (zero violations)
+
+1. Report shows zero violations.
+2. Skill writes the ok marker directly:
+   ```bash
+   mkdir -p "${TMPDIR:-/tmp}/commit-guard"
+   touch "${TMPDIR:-/tmp}/commit-guard/ok"
+   ```
+3. Next `git commit` / `git push` passes. Marker is single-use.
+
+### Path B — violations requiring user authorization
+
+1. Skill generates a random token:
+   ```bash
+   token=$(openssl rand -hex 4 2>/dev/null || head -c 8 /dev/urandom | xxd -p | tr -d '\n')
+   ```
+2. Skill writes the token to the pending file:
+   ```bash
+   mkdir -p "${TMPDIR:-/tmp}/commit-guard"
+   printf '%s\n' "$token" > "${TMPDIR:-/tmp}/commit-guard/pending"
+   ```
+3. Skill prints the violation report and ends with the exact phrase the
+   user must reply with:
+   ```
+   To authorize and proceed, reply with exactly:
+
+       cg: <token>
+
+   To cancel, reply with:
+
+       cg: cancel
+   ```
+4. Skill DOES NOT touch the ok marker. Skill DOES NOT call `git commit`
+   or `git push`. The assistant stops calling tools and waits for the
+   next user message.
+5. User replies. A UserPromptSubmit hook
+   (`~/.claude/hooks/cg-authorize.sh`) extracts the token and, if it
+   matches the pending file, writes the ok marker. The assistant never
+   touches the ok marker on this path.
+6. On the next turn, re-issue the original `git commit` / `git push`.
+   The hook validates the marker, consumes it, and lets the command run.
+
+Self-authorization is forbidden. Terse user intent verbs ("commit",
+"push", "ship") are NOT authorization. The "no clarifying questions"
+mode does NOT override this gate. The only valid authorization is the
+literal `cg: <token>` phrase typed by the user in response to a
+specific pending token.
 
 ## Pre-commit vs pre-push
 

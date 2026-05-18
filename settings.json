@@ -3,8 +3,6 @@
   "permissions": {
     "allow": [
       "Bash(php artisan:*)",
-      "Bash(touch /var/folders/*/commit-guard/ok)",
-      "Bash(touch /tmp/commit-guard/ok)",
       "Bash(mkdir -p /var/folders/*/commit-guard*)",
       "Bash(mkdir -p /tmp/commit-guard*)",
       "mcp__laravel-boost__tinker"
@@ -41,6 +39,20 @@
         "matcher": "Bash",
         "hooks": [
           { "type": "command", "command": "/Users/kid/.claude/hooks/git-guard.sh" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "/Users/kid/.claude/hooks/cg-authorize.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "/Users/kid/.claude/hooks/claude-sync.sh" }
         ]
       }
     ]
