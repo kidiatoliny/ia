@@ -178,9 +178,12 @@ Resolve a single milestone for the run. **Reuse before creating** — only open 
 
 Always create with a **human-readable title that names the actual scope** — never `Milestone 1`, `Sprint 2`, `Findings`, etc.
 
-Naming rule:
-- If the package has a current version in `package.json` / `composer.json` / `CHANGELOG.md` and the findings would naturally bundle into the next release, name the milestone for that release: `vX.Y.Z — <short scope phrase>` (e.g. `v0.7.0 — Payment correctness and test reliability hardening`).
-- Otherwise, name it for the scope: `<scope phrase> (<date>)` (e.g. `Auth middleware hardening (2026-Q2)`).
+Naming rule — **milestones are ALWAYS semver** (`vX.Y.Z — <short scope phrase>`, em dash `—`). No date-only fallback.
+
+- Resolve current version from (in order): latest git tag matching `v*.*.*`, `package.json` `version`, `composer.json` `version`, topmost `vX.Y.Z` heading in `CHANGELOG.md`.
+- Current version exists → next milestone defaults to next minor (`vX.(Y+1).0`); use next patch if scope is bug-only, next major if breaking. Confirm bump type with the user before creating.
+- No current version anywhere (no tag, no manifest version, no CHANGELOG) → first milestone is **`v0.1.0`**, subsequent ones increment from there. Do not start at `v1.0.0` unless the user explicitly asks for GA-first numbering.
+- Example: `v0.7.0 — Payment correctness and test reliability hardening`.
 
 Description (markdown, multi-paragraph) must summarise:
 - Which findings are bundled (counts by category and any confirmed bugs called out by Linear/GH ID)
