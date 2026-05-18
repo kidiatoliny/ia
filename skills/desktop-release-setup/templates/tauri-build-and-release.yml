@@ -30,8 +30,66 @@ env:
   CDN_BASE: https://unified-dev.nyc3.cdn.digitaloceanspaces.com
 
 jobs:
+  changelog:
+    name: Generate CHANGELOG
+    runs-on: ubuntu-latest
+    outputs:
+      body: ${{ steps.notes.outputs.body }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Pin package.json version to release tag (if present)
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ -f package.json ]; then
+            node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='${VERSION}'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');"
+          fi
+
+      - name: Ensure CHANGELOG header
+        run: |
+          if [ ! -s CHANGELOG.md ] || ! head -1 CHANGELOG.md | grep -q '^# Changelog'; then
+            printf '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n\n%s' "$(cat CHANGELOG.md 2>/dev/null || true)" > CHANGELOG.md
+          fi
+
+      - name: Generate CHANGELOG entry for this release
+        run: npx -y conventional-changelog-cli@5 -p angular -i CHANGELOG.md -s -r 1
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^(##|# )\\[?" ver { found=1; print; next }
+            found && /^(##|# )\[?[0-9]/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          {
+            echo "body<<EOF"
+            cat release-notes.md
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Commit CHANGELOG and version bump
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md package.json 2>/dev/null || git add CHANGELOG.md
+          git diff --cached --quiet || git commit -m "chore(release): ${GITHUB_REF_NAME}"
+          git push origin "HEAD:${{ github.event.repository.default_branch }}"
+
   build:
     name: Build (${{ matrix.target }})
+    needs: changelog
     runs-on: macos-latest
     strategy:
       matrix:
@@ -108,7 +166,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: build
+    needs: [changelog, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -137,6 +195,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*.dmg
+          body: ${{ needs.changelog.outputs.body }}
           prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

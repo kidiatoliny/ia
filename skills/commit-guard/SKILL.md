@@ -89,7 +89,13 @@ blocking direct git commands until the skill says OK.
 9. Test presence scan              — every modified source has matching test changes
 10. Breaking-change detection      — public API diff vs last tag/main
 11. Language build/lint/test       — full, blocking on any failure (pre-push only;
-                                     pre-commit runs the cheap subset)
+                                     pre-commit runs the cheap subset).
+                                     For Laravel projects: MUST execute `composer test`
+                                     (or the equivalent full composite script). A green
+                                     filtered run is NOT a substitute. No marker unlock
+                                     until the full script passes or user authorizes a
+                                     specific pre-existing failure via the 4-step protocol
+                                     in languages/php.md.
 12. Commit-message validation      — conventional format + project scope set
 13. Report                         — one consolidated violation table
 14. Decision gate                  — block if any rule fails; allow only on

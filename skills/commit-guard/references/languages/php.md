@@ -2,6 +2,20 @@
 
 No hard dependency on laravel-boost — works on any PHP project. When the project does ship boost, leverage its MCP tools for richer validation.
 
+## NON-NEGOTIABLE: composer test before EVERY push (Laravel)
+
+When a `composer.json` defines a `test` script (Laravel default), the skill MUST execute `composer test` before allowing the marker to be touched. No exceptions. No "subset of checks". No "tests already ran via filter". No "pre-existing failure, skipping". The full composite script runs; if it exits non-zero the push is BLOCKED until the failure is fixed or the user explicitly authorizes with the four-step pre-existing protocol.
+
+Mandatory call before unlocking the marker:
+
+```
+composer test
+```
+
+Surface its full exit status in the report. If the script is missing, fall back to running every script under `composer.json` `scripts.test` (or the documented sequence: type-coverage, unit/coverage, lint, types) explicitly.
+
+This rule has been violated before. Never again.
+
 ## Detection
 
 - PHP: `composer.json` present, OR staged `*.php` files.
