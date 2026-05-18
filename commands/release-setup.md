@@ -98,7 +98,15 @@ For npm/Cargo, ask the user whether to bump the manifest field. Default off; off
 - `{{TEST_COMMAND}}` — language test command (or removed if gate off)
 - `{{LANG_SETUP_STEPS}}` — language-specific runtime setup
 - `{{MANIFEST_BUMP_STEPS}}` — version bump steps (or removed)
+- `{{MANIFEST_FILES}}` — extra files staged with the changelog commit
 - `{{CHANGELOG_PRESET}}` — `angular` by default
+
+### Release notes contract
+
+- CHANGELOG generated with `-r 1` so only the new version section is written; full history stays intact.
+- New section extracted via `awk` and passed as the GitHub Release `body`. Release notes equal the CHANGELOG section verbatim — no `generate_release_notes` (PR-based) drift.
+- Keep a Changelog header bootstrapped if the file is missing or lacks it.
+- Manifest version (npm / Cargo / Python) pinned to the tag BEFORE conventional-changelog runs, so generated entries reference the correct release, not a stale placeholder.
 
 Permissions block always includes `contents: write`. If branch protection requires PR, instruct the user to set `RELEASE_PAT` secret + adjust checkout `token:`.
 

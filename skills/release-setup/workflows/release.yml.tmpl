@@ -28,12 +28,33 @@ jobs:
         with:
           node-version: 20
 
-      - name: Generate CHANGELOG
-        run: npx -y conventional-changelog-cli@5 -p {{CHANGELOG_PRESET}} -i CHANGELOG.md -s -r 0
-
 {{MANIFEST_BUMP_STEPS}}
 
-      - name: Commit CHANGELOG
+      - name: Ensure CHANGELOG header
+        run: |
+          if [ ! -s CHANGELOG.md ] || ! head -1 CHANGELOG.md | grep -q '^# Changelog'; then
+            printf '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n\n%s' "$(cat CHANGELOG.md 2>/dev/null || true)" > CHANGELOG.md
+          fi
+
+      - name: Generate CHANGELOG entry for this release
+        run: npx -y conventional-changelog-cli@5 -p {{CHANGELOG_PRESET}} -i CHANGELOG.md -s -r 1
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^(##|# )\\[?" ver { found=1; print; next }
+            found && /^(##|# )\[?[0-9]/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          {
+            echo "body<<EOF"
+            cat release-notes.md
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Commit CHANGELOG and manifest
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -46,4 +67,4 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          generate_release_notes: true
+          body: ${{ steps.notes.outputs.body }}
