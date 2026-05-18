@@ -212,18 +212,66 @@ For each parsed finding:
 
 Rate-limit awareness: if creating >20 issues, pause briefly between calls.
 
-## Step 10 — Final report
+## Step 10 — Downstream consumer tracking (cross-team dependencies)
+
+After the upstream issues exist, ask the user whether any **other Linear teams** own projects that consume this code (e.g. a frontend app that depends on a SISP SDK, or a mobile app that depends on a payments package).
+
+Prompt verbatim:
+
+```
+Do other Linear teams have projects that depend on this code? (y/N)
+- y: I'll mirror selected findings as tracking issues in those teams, linked with `blockedBy` to the upstream AKIRA-N.
+- n: skip.
+```
+
+If `y`:
+
+1. **Discover consumer teams/projects.**
+   - `mcp__linear__list_teams` (exclude the upstream team already used).
+   - For each candidate team the user names, list projects via `mcp__linear__list_projects` (filter by team).
+   - Ask the user to pick the consumer project(s) — never guess. If unclear, **ask** which projects depend on the upstream package. Persist the mapping in `~/.claude/projects/<cwd-slug>/memory/linear-mapping.md` under a `downstream:` section so future runs can pre-populate the choice.
+
+2. **Pick which findings to mirror.**
+   - Default selection: all `bug` category findings and any finding with `triage: confirmed-bug`. Test-gaps and build-release nits do **not** propagate downstream by default.
+   - Show the default list and let the user add/remove. If the user is unsure which findings affect the consumer, **ask** rather than guessing — most consumers only care about behavioural changes (bugs, breaking-API category, security-related).
+
+3. **Create tracking issues in each consumer team/project.**
+   - One tracking issue per (consumer-project, upstream-finding) pair.
+   - `mcp__linear__save_issue` with:
+     - `team`: consumer team
+     - `project`: consumer project
+     - `title`: `Integrate fix: <upstream title>` (or `Pick up <upstream-package> fix: <upstream title>` — pick the phrasing that reads naturally for the consumer team; **ask** if uncertain)
+     - `description`: short brief naming the upstream package, the user-visible symptom in the consumer, and the link to the upstream Linear + GitHub issues. Do not copy the full upstream body.
+     - `priority`: same priority as upstream
+     - `assignee`: leave unset unless the consumer team has an obvious owner the user names — **ask** rather than auto-assigning across team boundaries
+     - `labels`: only `<upstream-category>` if the consumer team has that label; otherwise omit. Do not create labels in another team without asking.
+     - `blockedBy: ["<upstream-linear-id>"]` (e.g. `["AKIRA-104"]`) — this is the cross-team dependency edge.
+     - `links: [{url: <upstream-gh-url>, title: "Upstream GH"}, {url: <upstream-linear-url>, title: "Upstream Linear"}]`
+   - Do **not** assign these to the upstream milestone or the upstream cycle — the consumer team has its own milestone/cycle and the user picks (or skips) those separately. Ask the user whether to set a `dueDate` keyed off the upstream milestone's target date.
+
+4. **Optionally create / extend a Linear Initiative for cross-team rollup.**
+   - Ask: `Group upstream + consumer projects under a Linear Initiative for cross-team visibility? (y/N)`
+   - If `y`: `mcp__linear__list_initiatives` to find a matching one (e.g. an existing "Payments platform" initiative). If none matches, ask for an initiative name + description and create with `mcp__linear__save_initiative`, then attach both upstream and consumer projects via `mcp__linear__save_project` with `addInitiatives`.
+
+5. **Backlink upstream → downstream.**
+   - For each upstream Linear issue that got a downstream tracker, append the tracker URL to the upstream issue via `save_issue` with `links: [{url: <downstream-url>, title: "Downstream: <team>/<project>"}]`. This makes the dependency visible from both sides.
+
+If `n` or no other teams are relevant: skip silently and proceed to the final report.
+
+## Step 11 — Final report
 
 Print a single table summarizing every issue created. Linear column omitted when sync was off.
 
 ```
 clawpatch: <n> findings → issues created
-| # | severity | title | github | linear |
-|---|----------|-------|--------|--------|
-| 1 | high     | ...   | #123   | NF-456 |
-| 2 | medium   | ...   | #124   | NF-457 |
+| # | severity | title | github | linear | downstream |
+|---|----------|-------|--------|--------|------------|
+| 1 | high     | ...   | #123   | NF-456 | FERRY-12, FERRY-13 |
+| 2 | medium   | ...   | #124   | NF-457 | — |
 ...
 ```
+
+The `downstream` column is omitted when Step 10 was skipped.
 
 ## Rules
 
@@ -243,6 +291,8 @@ clawpatch: <n> findings → issues created
 - Always set `dueDate` on Linear issues (tier by severity inside the milestone window) and pass `--milestone` to `gh issue create`. Never leave the target date empty.
 - If the Linear team has cycles enabled, assign issues to current/next by severity. If cycles are disabled, surface this and proceed without — never silently skip without telling the user.
 - Always ignore `/.clawpatch/` via `.gitignore` after init. The directory holds local audit state and reports and must never be committed.
+- Cross-team dependencies (Step 10): never auto-create issues in another team's project without explicit user confirmation of (a) consumer team, (b) consumer project, (c) which findings to mirror. Cycles and milestones do NOT cross team boundaries — leave the downstream cycle/milestone for the consumer team to set. Always link with `blockedBy` upstream and backlink the upstream issue with the downstream URL so both sides see the dependency.
+- When uncertain about downstream mapping, finding selection, or naming, **ask the user** rather than guessing. Better to ask once and cache the answer in `linear-mapping.md` than to silently create wrong-team issues.
 - If the user says "skip issues" or "report only", stop after Step 6 and print the report instead of creating issues.
 - If the report has zero findings, print "clawpatch: no findings" and exit cleanly — do not create empty issues.
 
