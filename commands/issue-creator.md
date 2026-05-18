@@ -68,9 +68,11 @@ Creates a GitHub issue **and** a matching Linear issue, then links them both way
    3. **Pick or create:**
       - If exactly one strong match (score clearly above others) → propose it: `Milestone: <name>. confirm? (Y/n)`.
       - If multiple plausible matches → numbered menu, user picks.
-      - If zero plausible matches → propose creating a new milestone, naming it per the same rule as `/clawpatch` Step 8b:
-        - Next-release-bound issue → `vX.Y.Z — <short scope phrase>`.
-        - Otherwise → `<scope phrase> (<YYYY-Qn or YYYY-MM>)`.
+      - If zero plausible matches → propose creating a new milestone. **Milestones are ALWAYS semver-named** (`vX.Y.Z — <short scope phrase>`), mirroring `/clawpatch` Step 8b's primary rule. Never use the `<scope phrase> (<date>)` fallback — pick a semver instead.
+        - Resolve the current version from (in order): latest git tag matching `v*.*.*`, `package.json` `version`, `composer.json` `version`, `CHANGELOG.md` topmost `vX.Y.Z` heading.
+        - If a current version exists → next milestone is the next minor (`vX.(Y+1).0`) by default, or next patch when scope is bug-only, or next major when scope is breaking. Confirm bump type with the user before creating.
+        - If NO current version exists anywhere (no tags, no manifest version, no CHANGELOG) → this is the project's first milestone. Start at **`v0.1.0`** and continue from there (`v0.2.0`, `v0.3.0`, …). Do not start at `v1.0.0` unless the user explicitly asks for GA-first numbering.
+        - Title format is exact: `vX.Y.Z — <short scope phrase>` (em dash `—`, not hyphen).
         Description (multi-paragraph) names the scope, why it matters, and exit criteria. Confirm with the user before creating; never auto-create a milestone silently.
       - GitHub create: `gh api -X POST repos/{owner}/{repo}/milestones -f title=… -f description=… -f due_on=…Z`.
       - Linear create: `mcp__linear__save_milestone` with `project`, `name`, `description`, `targetDate`.
