@@ -31,6 +31,59 @@ if printf '%s' "$command" | grep -qE '(^|[^a-zA-Z])(git[[:space:]]+push|gh[[:spa
   is_push=true
 fi
 
+is_commit=false
+if printf '%s' "$command" | grep -qE '(^|[^a-zA-Z])git[[:space:]]+commit([^a-zA-Z]|$)'; then
+  is_commit=true
+fi
+
+if [ "$is_commit" = "true" ]; then
+  subject=""
+  msg=$(CMD="$command" python3 -c '
+import os, re, sys
+cmd = os.environ.get("CMD", "")
+m = re.search(r"-m\s+\x27((?:[^\x27]|\x27\\\x27\x27)*)\x27", cmd) or re.search(r"-m\s+\"((?:\\.|[^\"\\])*)\"", cmd)
+if not m:
+    sys.exit(1)
+raw = m.group(1)
+raw = raw.replace("\x27\\\x27\x27", "\x27").replace("\\\"", "\"").replace("\\\\", "\\").replace("\\$", "$")
+m2 = re.search(r"\$\(cat\s*<<\s*\x27?(\w+)\x27?\s*\n(.*?)\n\1\s*\)", raw, re.S)
+if m2:
+    raw = m2.group(2)
+first_line = raw.lstrip().split("\n", 1)[0]
+print(first_line)
+' 2>/dev/null || true)
+  if [ -n "$msg" ]; then
+    subject=$(printf '%s' "$msg" | head -n1)
+  fi
+
+  if [ -n "$subject" ]; then
+    if ! printf '%s' "$subject" | grep -qE '^(feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert)(\([a-z0-9._-]+\))?!?: .+'; then
+      cat >&2 <<EOF
+BLOCKED by commit-guard hook: commit message does not follow Conventional Commits.
+
+Subject: "$subject"
+
+Required form:
+  type(scope): description
+  type!: description           (breaking change)
+  type(scope)!: description    (breaking change with scope)
+
+Allowed types:
+  feat, fix, chore, docs, style, refactor, perf, test, build, ci, revert
+
+Examples:
+  feat(auth): add OAuth login flow
+  fix(payment): handle declined card error
+  chore(deps): bump phpunit to ^11.0
+  refactor(api)!: drop legacy v1 endpoints
+
+Rewrite the message and re-run.
+EOF
+      exit 2
+    fi
+  fi
+fi
+
 marker_fresh=false
 if [ -f "$MARKER" ]; then
   if mtime=$(stat -f %m "$MARKER" 2>/dev/null); then :
