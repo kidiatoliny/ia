@@ -1,12 +1,13 @@
 ---
-name: akira-release-setup
-description: Provisions the canonical Akira release pipeline in any desktop app repo (Tauri or Wails). Generates .github/workflows/build-and-release.yml + .github/scripts/publish-release.sh so every push of a vX.Y.Z[-suffix] tag builds, signs, and uploads artifacts to DigitalOcean Spaces under the unified {channel}/v{VERSION}/ layout that Akira Billing reads. Use when the user says "setup release", "add release workflow", "ship to bucket", "configure CI release", "install release pipeline", or asks how to publish a new Akira desktop app.
+name: desktop-release-setup
+description: Provisions the canonical desktop-app release pipeline (Tauri or Wails). Generates .github/workflows/build-and-release.yml + .github/scripts/publish-release.sh so every push of a vX.Y.Z[-suffix] tag builds, signs, and uploads artifacts to DigitalOcean Spaces under the unified {channel}/v{VERSION}/ layout consumed by the Akira Billing endpoint. Triggers on "/desktop-release-setup", "setup desktop release", "tauri release pipeline", "wails release pipeline", "ship desktop app", "build and release desktop", "configure desktop CI release".
 ---
 
-# Akira release setup
+# Desktop release setup
 
-Installs the standardized release pipeline inside an Akira desktop app
-repository. Same layout for every app, regardless of bundler.
+Installs the standardized release pipeline inside a desktop app
+repository (Tauri or Wails). Same layout for every app, regardless of
+bundler.
 
 ## Bucket layout this pipeline produces
 
