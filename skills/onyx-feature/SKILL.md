@@ -1,51 +1,76 @@
 ---
-name: desktopkit-feature
+name: onyx-feature
 description: >-
-  Author or audit features in github.com/akira-io/desktopkit (Akira's
-  cross-platform Go desktop utility library) under rigid conventions and
-  modern Go best practices. Three modes: author (scaffold new package or
-  function), audit (scan and report violations, no auto-fix), suggest
-  (proactive extraction prompt). Triggers on keywords like "desktopkit",
-  "desktop kit", "akira-io/desktopkit", "Foundation/desktopkit", or when
-  user wants to add, create, implement, scaffold, or author a Go package,
-  module, function, helper, or feature in the shared desktop utility
-  library (cross-platform helpers — osinfo, paths, files, shell, clipboard,
-  notify, keyring, etc.), or wants to audit, review, lint, or check Go
-  code for naming conventions, SOLID, DRY, KISS, modern Go (generics,
-  slices, maps, log/slog, errors.Join), error handling, doc/test layout,
-  or semver/CHANGELOG compliance. Also triggers proactively, WITHOUT
-  explicit desktopkit mention, when any Go feature in any consumer app
-  touches runtime.GOOS, os/exec for system binaries (open, xdg-open,
+  Author, audit, or extract-suggest features for the onyx cross-platform
+  desktop utility library. Two sibling packages with mirrored module
+  surface: github.com/akira-io/onyx (Go module) and
+  github.com/akira-io/onyx-rs (Rust crate `onyx` on crates.io). Three
+  modes: author (scaffold package/function in the language matching the
+  active project), audit (scan and report violations, no auto-fix),
+  suggest (proactive extraction prompt — and when a feature is added in
+  one language, propose mirroring it in the sister package). Triggers
+  on keywords like "onyx", "onyx-rs", "akira-io/onyx", "Foundation/onyx",
+  "Foundation/onyx-rs", or when the user wants to add, create, implement,
+  scaffold, or author a package/module/function/helper/feature in the
+  shared desktop utility surface (osinfo, paths, files, shell, clipboard,
+  notify, keyring, etc.). Also triggers when auditing, reviewing, linting,
+  or checking Go or Rust code for naming conventions, SOLID, DRY, KISS,
+  modern idioms (Go generics/slices/maps/log/slog/errors.Join; Rust
+  edition 2021+/thiserror/clippy), error handling, doc/test layout, or
+  semver/CHANGELOG compliance. Also triggers proactively, WITHOUT
+  explicit onyx mention, when any consumer app touches platform branching
+  (runtime.GOOS in Go, cfg!(target_os) / #[cfg(...)] in Rust),
+  os/exec or std::process::Command for system binaries (open, xdg-open,
   explorer, start), platform paths (XDG, AppData, ~/Library), filesystem
   reveal (Finder, Explorer, Nautilus), clipboard, notifications,
   keyring/secrets, default-app launching, native dialogs, single-instance
-  lock, autostart, OS version detection, or switch runtime.GOOS / go:build
-  per-OS branching; same for filenames like platform.go, os_darwin.go,
-  paths_windows.go, or repeated OS conditionals across two or more files,
-  or code duplicating an existing desktopkit package. desktopkit is
-  consumer-agnostic — any Akira or third-party Go desktop app may depend
-  on it; never assume a specific consumer.
+  lock, autostart, OS version detection; same for filenames like
+  platform.go, os_darwin.go, paths_windows.go, src/<mod>/mod.rs containing
+  per-OS branching, or code duplicating an existing onyx package. onyx
+  is consumer-agnostic — any Akira or third-party desktop app (Go or
+  Rust) may depend on it; never assume a specific consumer.
 ---
 
-# desktopkit-feature
+# onyx-feature
 
-Enforce desktopkit conventions when authoring or auditing code in `github.com/akira-io/desktopkit` (local path: `/Users/kid/Akira/Foundation/desktopkit`).
+Enforce onyx conventions when authoring or auditing code in the two sibling packages:
+
+- **Go module** — `github.com/akira-io/onyx` (local path: `/Users/kid/Akira/Foundation/onyx`)
+- **Rust crate** — `github.com/akira-io/onyx-rs` publishing crate `onyx` (local path: `/Users/kid/Akira/Foundation/onyx-rs`)
+
+The two packages mirror one module surface (`osinfo`, `paths`, `files`, `shell`, ...). A feature lands in **both** packages whenever feasible. Skills, suggest mode, and release flow apply to each language using its own idioms.
+
+## Language Detection
+
+Run this **first**, before any other work:
+
+1. **Active project signal:**
+   - `go.mod` in target directory tree → Go project. Use Go conventions.
+   - `Cargo.toml` in target directory tree → Rust project. Use Rust conventions.
+   - Both present (workspace, polyglot repo) → ask which language the change targets.
+2. **File extension fallback:** `*.go` → Go, `*.rs` → Rust.
+3. **Onyx repo target:**
+   - Path under `Foundation/onyx/` → Go.
+   - Path under `Foundation/onyx-rs/` → Rust.
+4. **Cross-package work** (feature mirrored): always Go first when both apply, then Rust mirror — matching the canonical surface order.
+
+If detection fails, ask once. Never silently default.
 
 ## Modes
 
 Detect mode:
 
-- **author** — "add X to desktopkit", "new package Y", "implement Z function", "scaffold ..."
+- **author** — "add X to onyx", "new package Y", "implement Z function", "scaffold ..."
 - **audit** — "review", "audit", "check", "lint conventions", "is this compliant"
-- **suggest** (proactive) — feature being written in consumer app shows desktopkit-territory signals (see below). Fires automatically, not user-invoked.
+- **suggest** (proactive) — feature being written in consumer app shows onyx-territory signals (see below). Fires automatically, not user-invoked.
 
 If ambiguous: existing files → audit. New work → author.
 
 ## Suggest Mode (Proactive Extraction Prompt)
 
-Activate when ANY of these signals appear in code being written/edited (in ANY Go project, not just desktopkit):
+Activate when ANY of these signals appear in code being written/edited (in ANY Go or Rust project, not just onyx):
 
-**Code-level signals:**
+**Go code-level signals:**
 - `runtime.GOOS` referenced outside `osinfo` package
 - `switch runtime.GOOS` or `if runtime.GOOS == "..."` branches
 - `//go:build darwin|linux|windows` constraint files for cross-platform helpers
@@ -62,12 +87,21 @@ Activate when ANY of these signals appear in code being written/edited (in ANY G
 - Autostart entries (LaunchAgents, .desktop autostart, Windows registry Run keys)
 - Native open/save dialogs called directly via OS APIs
 
+**Rust code-level signals:**
+- `cfg!(target_os = "...")` or `#[cfg(target_os = "...")]` branching outside `osinfo` module
+- `std::env::consts::OS` referenced outside `osinfo`
+- `std::process::Command::new("open"|"xdg-open"|"explorer"|"start"|"cmd")`
+- `which` crate or hand-rolled `PATH` walk with platform fallbacks
+- Hand-rolled XDG / `%APPDATA%` / `~/Library` path construction
+- `arboard`, `notify-rust`, `keyring` crate usage with per-OS shims
+- `#[cfg(windows)]` / `#[cfg(unix)]` blocks for helper functions a consumer wrote inline
+
 **Filename signals:**
-- `platform*.go`, `os_*.go`, `*_darwin.go`/`*_linux.go`/`*_windows.go` with helper logic
-- `paths.go`, `clipboard.go`, `notify.go`, `shell.go`, `keyring.go` in a consumer app's internal/
+- Go: `platform*.go`, `os_*.go`, `*_darwin.go`/`*_linux.go`/`*_windows.go`, `paths.go`, `clipboard.go`, `notify.go`, `shell.go`, `keyring.go` in a consumer app's `internal/`
+- Rust: `src/platform.rs`, `src/os_*.rs`, `src/paths.rs`, `src/shell.rs`, `src/clipboard.rs` in a consumer app's lib/bin
 
 **Duplication signals:**
-- Function does what `osinfo`/`paths`/`files`/`shell` (or other existing desktopkit package) already does
+- Function does what `osinfo`/`paths`/`files`/`shell` (or other existing onyx package) already does in either language
 - Same OS-conditional pattern appears in two+ files within the project
 
 ### Suggest Action
@@ -75,14 +109,16 @@ Activate when ANY of these signals appear in code being written/edited (in ANY G
 When signal detected, BEFORE writing the inline code, surface ONE message:
 
 ```
-desktopkit-feature: this looks like desktopkit territory.
+onyx-feature: this looks like onyx territory.
 
 Signal: <which signal triggered>
+Language detected: <Go | Rust>
 Existing package match: <name or "none — would be new package <suggested-name>">
 
 Options:
-  1. Extract to desktopkit (recommended) — I'll author the package under conventions, then import it here.
-  2. Inline now, extract later — flag with TODO referencing desktopkit issue.
+  1. Extract to onyx (recommended) — I'll author the package under conventions in the active language,
+     then mirror it in the sister package, then import it here.
+  2. Inline now, extract later — flag with TODO(@kidiatoliny) referencing onyx issue.
   3. Keep inline — app-specific, not reusable (explain why).
 
 Which?
@@ -92,31 +128,52 @@ Do NOT auto-extract without user/agent confirmation. The point is the suggestion
 
 If running as sub-agent with no human in loop: default to option 1 (extract) UNLESS the logic is genuinely app-specific (uses consumer-specific domain types in the public signature). Log decision.
 
+### Cross-Package Mirror Rule
+
+Whenever a feature lands in one onyx package, it MUST be proposed for the sister:
+
+- Adding to `onyx` (Go) → propose `onyx-rs` (Rust) mirror with same module/function names adapted to Rust idioms (`snake_case`, `Result<T, E>`, etc.).
+- Adding to `onyx-rs` (Rust) → propose `onyx` (Go) mirror with same surface adapted to Go idioms (`PascalCase` exports, `(T, error)`, etc.).
+
+Surface the mirror prompt BEFORE finishing the first-language commit. User approves both, one, or neither. Skill scaffolds approved targets and updates each repo's CHANGELOG independently. Never bundle the change across the two repos in a single commit — separate commits in each repo.
+
+See `references/04-cross-package-flow.md` for the full mirror workflow.
+
+### Pre-Commit Hook Behavior
+
+Before any commit that touches Go or Rust code in a consumer app, run a quick scan for the signals above. If any match and the code is NOT already routed through onyx, raise the Suggest Action prompt and pause the commit. This is the "sempre que houver commit, antes de efectuar o onyx analisa" hook.
+
 ## Source of Truth
 
-Skill ships with frozen copy of conventions in `references/`. Always read those first — they're self-contained, survive desktopkit folder moves.
+Skill ships with frozen copy of conventions in `references/`. Always read those first — they're self-contained, survive onyx folder moves.
 
 Before doing anything, read (relative to this SKILL.md):
 
-1. `references/01-conventions.md` — rigid naming, errors, function design, comment, test rules
-2. `references/02-architecture.md` — cross-cutting, dependency, SOLID, semver rules
-3. `references/03-release-flow.md` — CI changelog automation, conventional-commit map, release cutting
-4. `references/modules/*.md` — reference shape for per-package docs (osinfo, paths, files, shell)
+1. `references/01-conventions.md` — Go conventions: naming, errors, function design, comment, test rules
+2. `references/02-architecture.md` — cross-cutting, dependency, SOLID, semver rules (language-agnostic)
+3. `references/03-release-flow.md` — CI changelog automation, conventional-commit map, release cutting (Go module on GitHub releases, Rust crate on crates.io via Trusted Publishing)
+4. `references/04-cross-package-flow.md` — dual-language mirror workflow
+5. `references/languages/rust.md` — Rust adapter: edition, clippy, error handling, file layout, crate-specific rules
+6. `references/modules/*.md` — reference shape for per-package docs (osinfo, paths, files, shell)
 
 If `references/` disagrees with this SKILL.md, references win.
 
 ### Sync Check
 
-After reading references, if live desktopkit repo reachable at `/Users/kid/Akira/Foundation/desktopkit/docs/` (or user provides path), diff against `references/`. If drift detected, surface it: "references/ out of date vs live docs — sync before proceeding?" Do NOT silently use stale refs or silently use live refs. User decides which is canonical, then sync.
+After reading references, if live onyx repo reachable at `/Users/kid/Akira/Foundation/onyx/docs/` (or user provides path), diff against `references/`. If drift detected, surface it: "references/ out of date vs live docs — sync before proceeding?" Do NOT silently use stale refs or silently use live refs. User decides which is canonical, then sync.
 
 To resync references manually:
 ```
-cp <desktopkit>/docs/01-conventions.md ~/.claude/skills/desktopkit-feature/references/
-cp <desktopkit>/docs/02-architecture.md ~/.claude/skills/desktopkit-feature/references/
-cp <desktopkit>/docs/modules/*.md ~/.claude/skills/desktopkit-feature/references/modules/
+cp <onyx>/docs/01-conventions.md ~/.claude/skills/onyx-feature/references/
+cp <onyx>/docs/02-architecture.md ~/.claude/skills/onyx-feature/references/
+cp <onyx>/docs/modules/*.md ~/.claude/skills/onyx-feature/references/modules/
 ```
 
-## Go Language Standards (Hard Enforcement)
+## Per-Language Standards (Hard Enforcement)
+
+This section is Go. For Rust, see `references/languages/rust.md` — every Go rule below has a Rust counterpart documented there (modern idioms, naming, errors, file layout, lint gate). Apply whichever matches the detected language.
+
+### Go
 
 Target Go version: **latest stable** (1.23+). Use modern features. Reject pre-modern patterns.
 
@@ -157,7 +214,7 @@ Target Go version: **latest stable** (1.23+). Use modern features. Reject pre-mo
 - Global mutable state. Package-level vars only for sentinel errors and true immutable defaults.
 - `interface{}` / `any` in exported APIs (use generics).
 - `reflect` unless absolutely no alternative — document why.
-- `unsafe` — forbidden in desktopkit. PR must justify and isolate.
+- `unsafe` — forbidden in onyx. PR must justify and isolate.
 - `go func() { ... }()` without explicit lifecycle (context + done channel + recover at top).
 - `time.Now()` directly in business logic — pass a clock or use `context` deadline.
 - Naked returns in functions >5 lines.
@@ -172,11 +229,11 @@ go test ./...      # must pass
 ```
 If `staticcheck` / `golangci-lint` available locally, run them too.
 
-## Desktopkit Convention Rules (Hard Enforcement)
+## Onyx Convention Rules (Hard Enforcement)
 
 ### Naming
 - Packages: lowercase, single word, no underscore/camelCase. Singular for value types (`osinfo`, `shell`), plural only when package itself is collection (`paths`, `files` — operations on many).
-- NEVER prefix package or symbol with `desktopkit`.
+- NEVER prefix package or symbol with `onyx`.
 - Functions: imperative verb. `ResolveBinary` not `BinaryResolver`. No abbreviations (`Configuration` not `Cfg`, `Application` not `App` unless domain term).
 - Predicates: `IsX`, `HasX`, `CanX`. Return `bool`.
 - Constructors: named after value — `NewCandidates`, `For(appName)`. Not `Make`, not `Create`.
@@ -234,7 +291,7 @@ No `util.go`, no `helpers.go`, no `common.go`.
   3. Platform behavior table (if cross-platform)
   4. Examples
   5. Errors
-  6. Dependencies (other desktopkit packages)
+  6. Dependencies (other onyx packages)
   7. Related modules
 - README only links to docs. No API in README.
 
@@ -257,7 +314,11 @@ When author mode adds a new public symbol, the commit message must use a prefix 
 
 ## Author Mode Workflow
 
-1. Read the three doc files above.
+Steps below are the **Go** flow. For Rust, swap to `references/languages/rust.md` → Author Workflow. The skeleton is the same: read references, confirm name, scaffold, doc, changelog, lint, audit, report. Never commit.
+
+### Go (onyx)
+
+1. Read the reference files above.
 2. Confirm package name and responsibility with user in ONE message if unclear; otherwise proceed.
 3. Scaffold files:
    - `<package>/<package>.go` — exported types/functions with GoDoc
@@ -266,15 +327,22 @@ When author mode adds a new public symbol, the commit message must use a prefix 
    - `docs/modules/<package>.md` — full per-module doc
 4. Update `CHANGELOG.md` — add `Added` entry under `## [Unreleased]`.
 5. Update `README.md` packages list if section exists.
-6. Run `go vet ./... && go test ./...` from `desktopkit/` root. Fix any failure before reporting done.
+6. Run `go vet ./... && go test ./...` from `onyx/` root. Fix any failure before reporting done.
 7. Self-audit using audit checklist below. Fix anything that fails.
 8. Report: files created, tests passing, doc link.
+9. **Mirror prompt:** ask user whether to mirror in `onyx-rs` now. If yes, switch to Rust author workflow (see `references/languages/rust.md`).
 
-Do NOT commit. User commits.
+### Rust (onyx-rs)
+
+See `references/languages/rust.md` for the full scaffold (`src/<mod>/mod.rs`, `tests/`, `cargo fmt && cargo clippy -- -D warnings && cargo test`, CHANGELOG block, README packages list). Same mirror prompt back to Go on completion.
+
+Do NOT commit. User commits. Commits are **separate per repo** — never bundle Go + Rust changes in one commit even when authoring both in the same session.
 
 ## Audit Mode Workflow
 
-Target: a package path, a file, or "all".
+Target: a package path, a file, or "all". Detect language first (see Language Detection above), then apply the matching checklist.
+
+### Go checklist
 
 For each Go file in scope, check:
 
@@ -290,7 +358,7 @@ For each Go file in scope, check:
 [ ] gofmt clean, go vet clean, go test passes
 [ ] No stutter (shell.Candidates not shell.ShellCandidates)
 [ ] Package name: lowercase, single word, no underscore
-[ ] No 'desktopkit' prefix in names
+[ ] No 'onyx' prefix in names
 [ ] Every exported symbol has GoDoc starting with symbol name
 [ ] No inline narration comments (// explaining what code does)
 [ ] No section divider comments
@@ -311,6 +379,10 @@ For each Go file in scope, check:
 [ ] Cross-platform tests skip via t.Skipf
 [ ] No stdlib mocking
 ```
+
+### Rust checklist
+
+For each Rust file in scope, run the checklist in `references/languages/rust.md` → Audit Checklist. Same shape, Rust-idiomatic rules (clippy clean, no `unwrap()`/`expect()` in lib code, `thiserror` for typed errors, `#[cfg(target_os)]` only inside `osinfo`, `snake_case` items, `PascalCase` types, modules in `src/<name>/mod.rs`, doctests, etc.).
 
 Output format (Markdown):
 

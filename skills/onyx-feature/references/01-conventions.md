@@ -1,6 +1,6 @@
 # Conventions
 
-Every package in `desktopkit` follows the rules below. They are non-negotiable. If a contribution breaks one of these rules without justification, it is rejected.
+Every package in `onyx` follows the rules below. They are non-negotiable. If a contribution breaks one of these rules without justification, it is rejected.
 
 ## Naming
 
@@ -9,7 +9,7 @@ Every package in `desktopkit` follows the rules below. They are non-negotiable. 
 - Lowercase, single word, no underscores or camelCase.
 - Singular when the package is about a single concept (`shell`).
 - Plural when the package primarily yields collections or grouped resources (`paths`).
-- Never prefix with `desktopkit` — the import path already provides that context.
+- Never prefix with `onyx` — the import path already provides that context.
 
 ### Exported identifiers
 
@@ -62,7 +62,7 @@ Every package in `desktopkit` follows the rules below. They are non-negotiable. 
 - **Open/closed** — extend by registering new options or implementations, not by editing existing ones.
 - **Liskov** — interfaces are tiny, behavior is consistent across implementations.
 - **Interface segregation** — prefer many small interfaces. A consumer should depend only on what it uses.
-- **Dependency inversion** — packages depend on contracts in `desktopkit`, not on transitive third-party libraries.
+- **Dependency inversion** — packages depend on contracts in `onyx`, not on transitive third-party libraries.
 - **DRY** — if the same OS switch appears twice, it lives in `internal/osinfo` or a shared helper.
 - **KISS** — the simplest correct API wins. Generics, reflection, and goroutines are last resorts.
 

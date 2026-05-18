@@ -515,14 +515,15 @@ Each slide's text must be repeatable out loud. If a slide takes more than 6 seco
 - **3-step or 2-step diagram** with bordered card cells and arrow connectors.
 - **Stat card / big number** centered with kicker tag above and supporting line below.
 - **URL block (CTA only)** with bordered frame, pill arrow button, mono path with accent color.
-- **Stack of bordered chips** for lists (3-6 small pills).
+- **Stack of bordered chips** for lists (3-6 small pills). Works well as a visual translation of a bullet list from the post (one chip per bullet, short label).
+- **Two-up mirror** for parity comparisons (same API in two languages, before/after, two configs). Both panes use the terminal-mock chrome (header bar with lang label on the left and pkg label on the right, code body below). Do **not** wrap individual parens in `.mute` spans — that splatters faint chars over the syntax and reads as broken. Instead, scope colors per token class: `.ident` for identifiers (accent), `.punct` for separators/parens (faint), `.str` for string literals (cyan). Replace the central arrow with a horizontal divider line + short uppercase caption below the two cards (e.g. `same surface · idiomatic each side`).
 - **Dot grid backdrop + noise overlay** is the universal base for ALL slides.
 
 **Required structural elements on EVERY slide:**
 
 - Dot-grid backdrop (`radial-gradient(circle at 1px 1px, ...)`, mask-faded to center).
 - Subtle noise layer (faint repeating linear-gradient).
-- Topbar with brand pill (`brand-dot` using conic-gradient) + project label (e.g. `kid.akira-io.com · spectra`).
+- Topbar with brand pill (`brand-dot` using conic-gradient) + the domain label only (e.g. `kid.akira-io.com`). Do not append the project name to the brand chip; the project comes through accent, kicker, and content. The chip identifies the site, not the slide topic.
 - Kicker label with prefixing horizontal rule (`.kicker::before { content: ""; width: 28px; height: 1px; background: var(--accent); }`).
 - Accent glow on key surfaces (`box-shadow: 0 0 24px color-mix(in oklab, var(--accent) 35%, transparent)`).
 - Footer dots + cta pill chip.
@@ -530,6 +531,8 @@ Each slide's text must be repeatable out loud. If a slide takes more than 6 seco
 **Reference implementation:** `tmp/ig/spectra-day-one/_gen.py` is the canonical example. Read it before generating a new carousel and adapt the slide types to the post's content. Do NOT regress to plain `<h1>` on background gradient slides.
 
 **Layout variety rule:** never produce 5 slides with the same visual treatment. If slides 1 and 2 are both "big heading + body line", slide 2 is wrong. Each slide gets a distinct treatment from the list above.
+
+**Display weight rule:** display headings render heavy. Default `display-xxl`/`xl`/`lg` to `font-weight: 800`, `display-md` to `700`. Anything lighter (500-600) reads as airy and underwhelming at 1080×1080. Load `Geist:wght@400;500;700;800;900` in the font import so weights 800 and 900 are available.
 
 Slides share a base layout for chrome only (topbar, footer, dot grid, noise). The stage content varies per slide. Save as `$REPO/tmp/ig/<slug>/slide-NN.html`.
 
@@ -540,7 +543,7 @@ Slides share a base layout for chrome only (topbar, footer, dot grid, noise). Th
   <meta charset="utf-8" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;800;900&family=Geist+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     /* mirrors $REPO/src/styles/global.css @theme palette */
     :root {
@@ -591,21 +594,21 @@ Slides share a base layout for chrome only (topbar, footer, dot grid, noise). Th
 
     .display-xl {
       font-size: 108px;
-      font-weight: 500;
+      font-weight: 800;
       line-height: 0.98;
       letter-spacing: -0.05em;
       max-width: 920px;
     }
     .display-lg {
       font-size: 84px;
-      font-weight: 500;
+      font-weight: 800;
       line-height: 1.02;
       letter-spacing: -0.045em;
       max-width: 920px;
     }
     .display-md {
       font-size: 62px;
-      font-weight: 500;
+      font-weight: 700;
       line-height: 1.1;
       letter-spacing: -0.035em;
       max-width: 880px;

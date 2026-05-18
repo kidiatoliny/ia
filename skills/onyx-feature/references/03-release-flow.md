@@ -28,7 +28,7 @@ The `release` workflow runs when a tag matching `v[0-9]+.[0-9]+.[0-9]+`
 2. Generates **technical release notes** from `git-cliff` for the commit
    range bounded by the new tag. These notes are exhaustive and faithful
    to the commit log — they are not the same as the human-voice CHANGELOG.
-3. Builds a source archive (`desktopkit-vX.Y.Z.tar.gz`).
+3. Builds a source archive (`onyx-vX.Y.Z.tar.gz`).
 4. Produces a coverage report (`coverage-vX.Y.Z.txt`).
 5. Publishes a GitHub Release at the tag with the technical notes as the
    body and the artifacts attached.

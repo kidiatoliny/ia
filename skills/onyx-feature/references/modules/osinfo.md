@@ -1,6 +1,6 @@
 # osinfo
 
-Runtime detection helpers shared by every other package in `desktopkit`.
+Runtime detection helpers shared by every other package in `onyx`.
 
 `osinfo` exists so that no other package has to switch on `runtime.GOOS` directly. If a fact depends on the current operating system, it belongs here.
 
@@ -19,7 +19,7 @@ Runtime detection helpers shared by every other package in `desktopkit`.
 ## Example
 
 ```go
-import "github.com/akira-io/desktopkit/osinfo"
+import "github.com/akira-io/onyx/osinfo"
 
 platform := osinfo.Current()
 if platform.IsWindows() {

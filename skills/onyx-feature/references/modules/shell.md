@@ -28,8 +28,8 @@ Resolving the `claude` CLI installed via npm, Homebrew, the official installer, 
 
 ```go
 import (
-    "github.com/akira-io/desktopkit/osinfo"
-    "github.com/akira-io/desktopkit/shell"
+    "github.com/akira-io/onyx/osinfo"
+    "github.com/akira-io/onyx/shell"
 )
 
 name := "claude" + osinfo.ExecutableExtension()

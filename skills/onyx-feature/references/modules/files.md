@@ -27,7 +27,7 @@ Linux has no universal "select item" command. `RevealInFileManager` opens the pa
 ## Example
 
 ```go
-import "github.com/akira-io/desktopkit/files"
+import "github.com/akira-io/onyx/files"
 
 if err := files.OpenPath("/Users/kid/Pictures/hero.png"); err != nil {
     return err

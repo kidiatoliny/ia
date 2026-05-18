@@ -32,7 +32,7 @@ The application name is used as-is. Callers that want a slugified folder name sh
 ## Example
 
 ```go
-import "github.com/akira-io/desktopkit/paths"
+import "github.com/akira-io/onyx/paths"
 
 app := paths.For("Hyperion")
 

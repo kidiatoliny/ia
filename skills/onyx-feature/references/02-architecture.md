@@ -1,11 +1,11 @@
 # Architecture
 
-`desktopkit` is a collection of small, independently importable Go packages. There is no central runtime, no init order, no hidden state. Each package exposes a focused API and depends on the standard library plus, when justified, one or two community libraries.
+`onyx` is a collection of small, independently importable Go packages. There is no central runtime, no init order, no hidden state. Each package exposes a focused API and depends on the standard library plus, when justified, one or two community libraries.
 
 ## Layout
 
 ```
-desktopkit/
+onyx/
 ├── paths/        application directory resolution
 ├── files/        filesystem actions visible to the user
 ├── shell/        process spawning and binary discovery
@@ -63,10 +63,10 @@ Callers handle errors with `errors.Is(err, somePackage.ErrXxx)`.
 - **Open/closed** — `shell.ResolveExecutable` accepts a `Candidates` value built by the caller. New search strategies extend `Candidates` without changing the resolver.
 - **Liskov** — implementations of the same interface (planned: `clipboard.Provider`, `notify.Provider`) behave identically across operating systems from the caller's perspective.
 - **Interface segregation** — `osinfo.Platform` is a value, not an interface. Interfaces appear only where multiple implementations exist.
-- **Dependency inversion** — application code depends on `desktopkit/files.OpenPath`, not on `github.com/skratchdot/open-golang`. Swapping the underlying library is a one-package change.
+- **Dependency inversion** — application code depends on `onyx/files.OpenPath`, not on `github.com/skratchdot/open-golang`. Swapping the underlying library is a one-package change.
 
 ## Boundaries
 
-`desktopkit` does not own state. It does not write logs. It does not configure anything globally. If you need logging, pass a `*slog.Logger` into the option struct. If you need cancellation, pass a `context.Context`.
+`onyx` does not own state. It does not write logs. It does not configure anything globally. If you need logging, pass a `*slog.Logger` into the option struct. If you need cancellation, pass a `context.Context`.
 
 This keeps each package replaceable, testable, and embeddable inside any host (Wails, Fyne, Tauri-via-CGo, plain CLI).
