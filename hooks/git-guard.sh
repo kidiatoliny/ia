@@ -26,18 +26,24 @@ case "$command" in
     ;;
 esac
 
+is_push=false
+if printf '%s' "$command" | grep -qE '(^|[^a-zA-Z])(git[[:space:]]+push|gh[[:space:]]+pr[[:space:]]+create|gh[[:space:]]+release[[:space:]]+create)([^a-zA-Z]|$)'; then
+  is_push=true
+fi
+
+marker_fresh=false
 if [ -f "$MARKER" ]; then
   if mtime=$(stat -f %m "$MARKER" 2>/dev/null); then :
   else mtime=$(stat -c %Y "$MARKER" 2>/dev/null || echo 0); fi
   age=$(( $(date +%s) - mtime ))
   if [ "$age" -lt "$TTL" ]; then
-    rm -f "$MARKER"
-    exit 0
+    marker_fresh=true
   fi
   rm -f "$MARKER"
 fi
 
-cat >&2 <<EOF
+if [ "$marker_fresh" = "false" ]; then
+  cat >&2 <<EOF
 BLOCKED by commit-guard hook: $command
 
 Mandatory rule: commit-guard validation must run and pass before any
@@ -46,28 +52,43 @@ git commit, git push, gh pr create, or gh release create.
 Required next steps for the agent:
 
   1. Invoke the commit-guard skill (Skill tool, name="commit-guard")
-     or call /commit-guard. The skill reads
-     ~/.claude/skills/commit-guard/SKILL.md and references/.
-
-  2. Run all checks: 300-line file cap, conventional commit scopes,
-     language-idiomatic naming, comments policy, AI-tells ban,
-     secrets scan, dead-code removal, tests on every functional
-     change, breaking-change discipline.
-
-  3. Fix every reported violation, OR ask the user to explicitly
-     authorize a per-change exception ("skip commit-guard", "allow
-     emoji here", "no test for this change because <reason>").
-
-  4. After commit-guard reports "clean" (or the user authorizes the
-     exception), touch the marker file to unlock the next git command:
+     or call /commit-guard.
+  2. Run all checks; fix violations or authorize per change.
+  3. Touch the marker:
         touch "$MARKER"
-
-  5. Re-issue the same git/gh command. The hook consumes the marker
-     and allows the call to proceed.
-
-This hook protects the user's quality bar. Do not try to bypass it
-by chaining commands, eval, base64, or any other technique. Always
-go through commit-guard.
+  4. Re-issue the git/gh command.
 EOF
+  exit 2
+fi
 
-exit 2
+if [ "$is_push" = "true" ] && [ -n "$cwd" ] && [ -f "$cwd/composer.json" ]; then
+  has_test_script=$(jq -r '.scripts.test // empty' "$cwd/composer.json" 2>/dev/null || true)
+  if [ -n "$has_test_script" ]; then
+    is_laravel=false
+    if [ -f "$cwd/artisan" ] && jq -e '.require["laravel/framework"]' "$cwd/composer.json" >/dev/null 2>&1; then
+      is_laravel=true
+    fi
+    if jq -e '.require["nunomaduro/essentials"], .["require-dev"]["nunomaduro/essentials"]' "$cwd/composer.json" >/dev/null 2>&1; then
+      is_laravel=true
+    fi
+
+    if [ "$is_laravel" = "true" ]; then
+      echo ">> commit-guard hard-enforce: running composer test before allowing $command" >&2
+      cd "$cwd"
+      if ! composer test 1>&2; then
+        cat >&2 <<EOF
+
+BLOCKED by commit-guard hard-enforce: composer test failed.
+
+This is the Laravel pre-push composite gate. Every script under
+composer.json scripts.test must pass before a push is allowed. No
+filtered-subset substitute, no "pre-existing" claim without the
+4-step protocol in commit-guard's php.md adapter.
+EOF
+        exit 2
+      fi
+    fi
+  fi
+fi
+
+exit 0
