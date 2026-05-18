@@ -152,6 +152,7 @@ jobs:
         with:
           files: ${{ steps.meta.outputs.dmg_path }}
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -279,6 +280,7 @@ jobs:
         with:
           files: ${{ steps.meta.outputs.dmg_path }}
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

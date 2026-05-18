@@ -134,6 +134,9 @@ jobs:
 
       - name: Upload DMGs to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with: { files: dist/*.dmg }
-        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.dmg
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
