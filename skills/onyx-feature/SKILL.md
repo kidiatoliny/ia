@@ -412,9 +412,48 @@ Do NOT auto-fix. Report only. Ask user to approve corrections, then apply.
 - Never invent a convention not in the docs. If user wants a new rule, propose it as a docs edit first.
 - If conventions docs are unclear/contradictory, surface the conflict; do not silently pick a side.
 
+## Repo Discovery
+
+When author mode starts, confirm both repo paths before touching any file:
+
+1. Check `/Users/kid/Akira/Foundation/onyx` (Go) — `ls go.mod` to verify.
+2. Check `/Users/kid/Akira/Foundation/onyx-rs` (Rust) — `ls Cargo.toml` to verify.
+3. If either path missing, ask once: "Where is [onyx|onyx-rs] on your machine?" Store the answer; do not ask again in the same session.
+
+## Post-Implementation Prompt
+
+After author mode completes for **both** packages (or the active single language if mirror was declined), and all lint/test gates pass, present this prompt exactly:
+
+```
+Implementation done.
+
+Go (onyx):    <list of new/changed files>
+Rust (onyx-rs): <list of new/changed files>
+
+What next?
+  1. Release — bump version, update CHANGELOG, tag, push (CI publishes)
+  2. PR only — open pull requests, no tag
+  3. Nothing — I'll handle it myself
+```
+
+On option 1 (Release):
+- Read `references/03-release-flow.md` for the exact steps.
+- For **Go**: promote `## [Unreleased]` → `## [X.Y.Z] - YYYY-MM-DD`, add empty `## [Unreleased]`, commit `chore(release): vX.Y.Z`, then ask version bump (patch/minor/major).
+- For **Rust**: same CHANGELOG update + bump `version` in `Cargo.toml`, commit `chore(release): vX.Y.Z`, tag `vX.Y.Z`, push with tag.
+- Tag and push each repo separately; CI handles crates.io publish and GitHub Release.
+- Show exact commands before running. Confirm once before any tag push.
+
+On option 2 (PR only):
+- Run `gh pr create` in each repo from the current branch.
+- Title: `feat(<module>): <short description>`.
+- Body: bullets from CHANGELOG `## [Unreleased]` block.
+- Return both PR URLs.
+
+On option 3: do nothing, report done.
+
 ## Output Requirement
 
-Author mode ends with: file list + `go test ./...` result.
+Author mode ends with: file list + `go test ./...` result + Post-Implementation Prompt.
 Audit mode ends with: violation count + corrections list.
 
 Never produce code that fails any rule. Self-check before reporting done.
