@@ -9,6 +9,47 @@
     ],
     "defaultMode": "acceptEdits"
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/kid/.claude/hooks/git-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/kid/.claude/hooks/gitflow-guard.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/kid/.claude/hooks/cg-authorize.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/kid/.claude/hooks/gitflow-context.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/kid/.claude/hooks/claude-sync.sh"
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "bun /Users/kid/.claude/scripts/statusline/src/index.ts",
@@ -19,7 +60,8 @@
     "swift-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
     "caveman@caveman": true,
-    "frontend-design@claude-plugins-official": true
+    "frontend-design@claude-plugins-official": true,
+    "vercel@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
@@ -31,32 +73,6 @@
   },
   "alwaysThinkingEnabled": true,
   "skipDangerousModePermissionPrompt": true,
-  "skipAutoPermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          { "type": "command", "command": "/Users/kid/.claude/hooks/git-guard.sh" },
-          { "type": "command", "command": "/Users/kid/.claude/hooks/gitflow-guard.sh" }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          { "type": "command", "command": "/Users/kid/.claude/hooks/cg-authorize.sh" },
-          { "type": "command", "command": "/Users/kid/.claude/hooks/gitflow-context.sh" }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          { "type": "command", "command": "/Users/kid/.claude/hooks/claude-sync.sh" }
-        ]
-      }
-    ]
-  }
+  "skipAutoPermissionPrompt": true
 }
