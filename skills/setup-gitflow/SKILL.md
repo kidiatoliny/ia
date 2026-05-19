@@ -1,9 +1,9 @@
 ---
-name: milestone-branch
+name: setup-gitflow
 description: |
-  Professional milestone-branch Git workflow. Enforces: never commit to main; each milestone gets an integration branch (milestone/vX.Y.Z); feature branches fork from the milestone branch; PRs always target the milestone branch; the milestone branch merges to main only when the whole milestone is tested and complete. GitHub Actions enforce these rules even when working outside Claude.
+  Professional milestone-branch Git workflow (gitflow). Enforces: never commit to main; each milestone gets an integration branch (milestone/vX.Y.Z); feature branches fork from the milestone branch; PRs always target the milestone branch; the milestone branch merges to main only when the whole milestone is tested and complete. GitHub Actions enforce these rules even when working outside Claude.
 
-  Use this skill whenever the user says any of: /start-issue, /finish-milestone, /setup-branch-policy, "start issue", "iniciar issue", "trabalhar no issue", "fechar milestone", "merge milestone", "configurar branch protection", "setup milestone workflow", "criar branch para issue", "começar a trabalhar no". Also trigger proactively when the user is about to work on a Linear issue and no feature branch has been created yet — don't wait to be asked.
+  Use this skill whenever the user says any of: /setup-gitflow, /start-issue, /finish-milestone, /setup-branch-policy, "start issue", "iniciar issue", "trabalhar no issue", "fechar milestone", "merge milestone", "configurar branch protection", "setup milestone workflow", "criar branch para issue", "começar a trabalhar no", "setup gitflow", "configurar gitflow". Also trigger proactively when the user is about to work on a Linear issue and no feature branch has been created yet — don't wait to be asked.
 ---
 
 # Milestone-Branch Workflow

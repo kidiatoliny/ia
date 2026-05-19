@@ -1,0 +1,26 @@
+{
+  "skill_name": "milestone-branch",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "start issue AKIRA-156 in the repo at /Users/kid/Akira/spectra",
+      "expected_output": "Milestone branch milestone/v1.0.0-beta created or confirmed on remote. Feature branch feat/akira-156-sentry-observability-with-opt-in-scrubber (or similar slug from Linear gitBranchName) created from the milestone branch. Linear issue AKIRA-156 status updated to In Progress. Comment added on Linear issue mentioning the branch name and milestone target. User informed of current branch and next steps.",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 1,
+      "prompt": "setup the branch policy and GitHub Actions protection for the repo at /Users/kid/Akira/spectra",
+      "expected_output": "File .github/workflows/branch-policy.yml created with correct YAML enforcing: feat/fix/chore/* must target milestone/*, milestone/* must target main. GitHub branch protection applied to main via gh api requiring enforce-targets status check. Workflow file committed and pushed.",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "prompt": "iniciar issue AKIRA-163 no repo em /Users/kid/Akira/spectra",
+      "expected_output": "Skill triggered correctly from Portuguese phrase 'iniciar issue'. Milestone branch milestone/v1.2.0 created or confirmed (AKIRA-163 belongs to v1.2.0 — Differentiators). Feature branch created from milestone branch. Linear issue updated. Comment posted on Linear issue.",
+      "files": [],
+      "assertions": []
+    }
+  ]
+}
