@@ -38,14 +38,16 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "/Users/kid/.claude/hooks/git-guard.sh" }
+          { "type": "command", "command": "/Users/kid/.claude/hooks/git-guard.sh" },
+          { "type": "command", "command": "/Users/kid/.claude/hooks/gitflow-guard.sh" }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "/Users/kid/.claude/hooks/cg-authorize.sh" }
+          { "type": "command", "command": "/Users/kid/.claude/hooks/cg-authorize.sh" },
+          { "type": "command", "command": "/Users/kid/.claude/hooks/gitflow-context.sh" }
         ]
       }
     ],
