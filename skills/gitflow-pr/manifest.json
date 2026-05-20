@@ -1,0 +1,7 @@
+{
+  "name": "gitflow-pr",
+  "version": "1.0.0",
+  "description": "Automated commit → push → PR workflow with commit-guard on gitflow",
+  "entry": "index.sh",
+  "triggers": ["gitflow-pr", "flow-pr"]
+}
