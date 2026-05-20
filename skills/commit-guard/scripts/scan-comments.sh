@@ -9,6 +9,10 @@
 #     // @ts-*, # noqa, # type: ignore, # pylint:, # mypy:, // biome-ignore
 #   - SPDX license headers: // SPDX-License-Identifier: ..., # SPDX-...
 #   - Shebangs: first-line `#!`
+#   - PHP: PHPDoc `/** */` blocks whose every content line is a static-analysis
+#     annotation (@param, @return, @var, @property, @method, @template,
+#     @extends, @implements, @mixin, @throws, @phpstan-*, @psalm-*). A PHPDoc
+#     block carrying any narrative prose line is still flagged.
 #
 # Output (stdout):
 #   <file>:<line>:<excerpt>
@@ -54,15 +58,99 @@ is_allowed_pragma() {
   return 1
 }
 
+is_php_doc_tag() {
+  local s="$1"
+  case "$s" in
+    "@param"*|"@return"*|"@var"*|"@property"*|"@property-read"*|"@property-write"*) return 0 ;;
+    "@method"*|"@template"*|"@template-covariant"*|"@template-contravariant"*) return 0 ;;
+    "@extends"*|"@implements"*|"@use"*|"@mixin"*|"@throws"*) return 0 ;;
+    "@phpstan-"*|"@psalm-"*) return 0 ;;
+  esac
+  return 1
+}
+
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   [ -f "$f" ] || continue
+
+  is_php=0
+  case "$f" in *.php) is_php=1 ;; esac
+
+  in_doc=0
+  doc_start_ln=0
+  doc_pure=1
 
   ln=0
   while IFS= read -r line; do
     ln=$((ln + 1))
     trimmed="${line#"${line%%[![:space:]]*}"}"
+
+    if [ "$is_php" -eq 1 ] && [ "$in_doc" -eq 1 ]; then
+      case "$trimmed" in
+        *"*/"*)
+          body="${trimmed%%\*/*}"
+          body="${body#\*}"
+          body=$(trim "$body")
+          if [ -n "$body" ] && ! is_php_doc_tag "$body"; then
+            doc_pure=0
+          fi
+          in_doc=0
+          if [ "$doc_pure" -eq 0 ]; then
+            echo "$f:$doc_start_ln: /** ... */ (narrative docblock)"
+            violations=$((violations + 1))
+          fi
+          ;;
+        *)
+          content="${trimmed#\*}"
+          content=$(trim "$content")
+          if [ -n "$content" ] && ! is_php_doc_tag "$content"; then
+            doc_pure=0
+          fi
+          ;;
+      esac
+      continue
+    fi
+
     case "$trimmed" in
+      "/**"*)
+        if [ "$is_php" -eq 1 ]; then
+          case "$trimmed" in
+            *"*/"*)
+              inner="${trimmed#/\*\*}"
+              inner="${inner%%\*/*}"
+              inner=$(trim "$inner")
+              if [ -z "$inner" ] || is_php_doc_tag "$inner"; then
+                continue
+              fi
+              echo "$f:$ln: $trimmed"
+              violations=$((violations + 1))
+              ;;
+            *)
+              in_doc=1
+              doc_start_ln=$ln
+              doc_pure=1
+              rest="${trimmed#/\*\*}"
+              rest=$(trim "$rest")
+              if [ -n "$rest" ] && ! is_php_doc_tag "$rest"; then
+                doc_pure=0
+              fi
+              ;;
+          esac
+          continue
+        fi
+        if is_allowed_pragma "$trimmed"; then
+          continue
+        fi
+        echo "$f:$ln: $trimmed"
+        violations=$((violations + 1))
+        ;;
       "//"*|"#"*|"/*"*)
         if is_allowed_pragma "$trimmed"; then
           continue

@@ -182,6 +182,19 @@ When boost is present, the following checks become MANDATORY rather than best-ef
 
 When boost is absent, the above remain recommended but not blocking. Surface "boost would speed this up" as info in the report.
 
+## Comments — PHPDoc annotations auto-allowed
+
+`scripts/scan-comments.sh` is PHP-docblock-aware. A `/** */` block is allowed
+without authorization when every content line is a static-analysis annotation:
+`@param`, `@return`, `@var`, `@property`, `@property-read`, `@property-write`,
+`@method`, `@template`, `@extends`, `@implements`, `@use`, `@mixin`, `@throws`,
+`@phpstan-*`, `@psalm-*`. These are the annotations PHPStan/Psalm and the
+type-coverage gate require; the signature is still the documentation.
+
+A PHPDoc block carrying any narrative prose line (e.g. a summary sentence) is
+flagged even if it also contains an annotation — strip the prose, keep the
+tags. Inline `//` / `#` comments are unaffected and still blocked by default.
+
 ## File length applies normally (300-line cap)
 
 PHP class files commonly drift over 300 lines via wide property/method blocks. Split into traits, value objects, or smaller classes by responsibility before hitting the cap.

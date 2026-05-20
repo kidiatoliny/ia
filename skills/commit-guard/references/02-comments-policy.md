@@ -21,7 +21,7 @@ This policy is **stricter than community defaults** for every language. GoDoc / 
 ## Allowed (narrow exceptions)
 
 1. **Static analysis annotations** that the toolchain requires to type-check:
-   - PHP: `@var`, `@property`, `@method`, `@param`/`@return` ONLY when PHPStan / Psalm cannot infer.
+   - PHP: `@var`, `@property`, `@method`, `@param`/`@return` (and `@template`, `@extends`, `@implements`, `@mixin`, `@throws`, `@phpstan-*`, `@psalm-*`) ONLY when PHPStan / Psalm cannot infer. The scanner auto-allows a `/** */` block whose every content line is one of these tags; a block mixing narrative prose with tags is still flagged.
    - TypeScript: TSDoc ONLY when a generic type parameter can't be inferred by the language server.
    - Rust: `#[doc = "..."]` only where `cargo doc` is shipped externally and the doc is non-obvious.
    - Go: GoDoc is **not** required. `golint` warnings about missing package comments and exported-symbol comments are tolerated; lint configs should silence them if the linter complains.
