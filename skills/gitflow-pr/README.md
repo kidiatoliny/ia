@@ -1,43 +1,40 @@
 # gitflow-pr
 
-Automated gitflow workflow: commit → push → PR in one command.
+Create PR with gitflow base inference.
+
+Hooks already handle commit/push validation (gitflow-guard, commit-guard).
+This skill only creates the PR with smart base branch detection.
 
 ## Usage
 
 ```
-/gitflow-pr "commit message" [--base branch]
+/gitflow-pr [--base branch]
 ```
 
 ## Examples
 
 ```bash
-# Commit with default base (inferred from branch name)
-/gitflow-pr "feat: add user authentication"
+# Default: infer base (milestone/vX.Y.Z or main)
+/gitflow-pr
 
-# Commit with explicit base branch
-/gitflow-pr "fix: race condition" --base main
-
-# Chore on feature branch
-/gitflow-pr "chore: update dependencies"
+# Override base branch
+/gitflow-pr --base main
 ```
 
-## Behavior
+## Flow
 
-1. **Validates** current branch (blocks main/master commits)
-2. **Infers base branch** from branch name (feat/xyz → milestone/vX.Y.Z, or main)
-3. **Runs commit-guard** before each step (commit, push, PR create)
-4. **Commits** staged changes
-5. **Pushes** to origin with `-u` (sets upstream)
-6. **Creates PR** into base branch
+1. **After** you've committed and pushed (hooks validate)
+2. **Infers** base branch: looks for milestone/vX.Y.Z, falls back to main
+3. **Creates PR** with `gh pr create`
 
 ## Requirements
 
-- Git repository (gitflow workflow)
-- `gh` CLI (GitHub)
-- Staged changes ready to commit
-- On a feature branch (not main/master)
+- Git repository on feature branch
+- Branch already pushed to origin
+- `gh` CLI configured
+- Existing gitflow setup (hooks in ~/.claude/hooks/)
 
 ## Exit codes
 
 - `0` — success
-- `1` — error (git/gh command failed, or not on feature branch)
+- `1` — error (not in repo, or `gh pr create` failed)

@@ -1,7 +1,7 @@
 {
   "name": "gitflow-pr",
   "version": "1.0.0",
-  "description": "Automated commit → push → PR workflow with commit-guard on gitflow",
+  "description": "Create PR with gitflow base inference (after commit/push)",
   "entry": "index.sh",
-  "triggers": ["gitflow-pr", "flow-pr"]
+  "triggers": ["gitflow-pr", "pr"]
 }
