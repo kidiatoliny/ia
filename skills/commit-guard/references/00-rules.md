@@ -1,6 +1,6 @@
 # Mandatory Rules — Universal
 
-These 10 rules are non-negotiable. Apply to every language, every project, every commit and push.
+These rules are non-negotiable. Apply to every language, every project, every commit and push.
 
 ## 1. File length — language-aware caps
 
@@ -114,6 +114,13 @@ See `03-ai-tells.md`. Summary: no emojis in code/copy/UI, no em-dash (`—`) in 
   - CLI flags, env vars, config file shape.
   - Public package layout (renaming/moving published packages).
 - Run a best-effort scan for callers within the monorepo and across known consumer repos. List them.
+
+## 11. No chained if branches
+
+- Block `else if`, `elif`, and `elsif` in staged changes across every language.
+- Prefer early returns, guard clauses, extracted decision functions, pattern matching, or explicit sequential decisions.
+- This rule is universal. Do not keep chained conditional branches for style or brevity.
+- Run `scripts/scan-chained-if.sh` before commit and push. A non-zero exit blocks the change.
 
 ## Exception protocol
 

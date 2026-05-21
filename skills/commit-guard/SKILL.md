@@ -39,7 +39,7 @@ Always read first:
 
 If a project file overrides a rule, the project wins. If user explicitly authorizes an exception in the current turn, that exception applies to the current change only.
 
-## The 10 mandatory rules
+## The mandatory rules
 
 1. **File length** — hard cap 300 lines per source file. Block above.
 2. **Tests** — every functional change ships tests (new or updated). Block if missing.
@@ -51,6 +51,7 @@ If a project file overrides a rule, the project wins. If user explicitly authori
 8. **Secrets scan** — scan staged diff for credentials, API keys, private keys, `.env` contents, hardcoded tokens. On ambiguity, ASK before proceeding, explaining the suspicious match clearly. Never proceed silently when uncertain.
 9. **Dead code** — every unused import, variable, function, type, file detected must be removed. Explain the impact of each removal in the report (callers, references, public-API status).
 10. **Breaking changes** — any change to a public API surface requires major-version bump + CHANGELOG entry under `Changed` or `Removed`. Explain to the user what breaks, who depends on it (best-effort scan), and the migration path.
+11. **No chained if branches** — block conditional chains expressed as `else if`, `elif`, or `elsif`. Refactor with early returns, guards, extracted functions, pattern matching, or explicit sequential decisions.
 
 These rules are MANDATORY. They are not preferences. They are not skippable to "ship faster". They are not "noisy". They are the agreement.
 
@@ -90,12 +91,15 @@ blocking direct git commands until the skill says OK.
                                      Plus agent-level review for AI-shaped
                                      narrative comments not caught by grep.
 5. AI-tells scan                   — emojis, em-dashes, banned phrasings
-6. Naming-convention scan          — symbols match language standard
-7. Dead-code scan                  — unused imports/vars/funcs
-8. Secrets scan                    — staged diff
-9. Test presence scan              — every modified source has matching test changes
-10. Breaking-change detection      — public API diff vs last tag/main
-11. Language build/lint/test       — full, blocking on any failure (pre-push only;
+6. Chained-if scan                 — MANDATORY programmatic run:
+                                     `bash ~/.claude/skills/commit-guard/scripts/scan-chained-if.sh`
+                                     Exit 1 ⇒ violations on stdout. ALWAYS BLOCK.
+7. Naming-convention scan          — symbols match language standard
+8. Dead-code scan                  — unused imports/vars/funcs
+9. Secrets scan                    — staged diff
+10. Test presence scan             — every modified source has matching test changes
+11. Breaking-change detection      — public API diff vs last tag/main
+12. Language build/lint/test       — full, blocking on any failure (pre-push only;
                                      pre-commit runs the cheap subset).
                                      For Laravel projects: MUST execute `composer test`
                                      (or the equivalent full composite script). A green
@@ -103,11 +107,11 @@ blocking direct git commands until the skill says OK.
                                      until the full script passes or user authorizes a
                                      specific pre-existing failure via the 4-step protocol
                                      in languages/php.md.
-12. Commit-message validation      — conventional format + project scope set
-13. Report                         — one consolidated violation table
-14. Decision gate                  — block if any rule fails; allow only on
+13. Commit-message validation      — conventional format + project scope set
+14. Report                         — one consolidated violation table
+15. Decision gate                  — block if any rule fails; allow only on
                                      explicit user authorization for that change
-15. Unlock marker                  — see "Marker unlock protocol" below
+16. Unlock marker                  — see "Marker unlock protocol" below
 ```
 
 ## Marker unlock protocol (MANDATORY)
